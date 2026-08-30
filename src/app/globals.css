@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+/**
+ * The demo's design system.
+ *
+ * ---------------------------------------------------------------------------
+ * **Almost nothing here is a colour.** Seven variables — accent, its foreground,
+ * its soft tint, the page, the surface, the text and the muted text — arrive
+ * from the variant at request time, written into the document by `themeCss()`.
+ * Everything below is built from those, so a variant changes the whole site by
+ * changing seven values in a database row.
+ *
+ * The values written here are only a fallback for the moment before a variant
+ * has been resolved, and for the pages that have no variant at all — the
+ * expired-link screen and the panel's sign-in.
+ *
+ * ---------------------------------------------------------------------------
+ * **The rule every palette must satisfy, in both modes:** the page is a step
+ * away from the things sitting on it. In light, the page is grey and cards are
+ * white; in dark, the page is near-black and cards are lifted above it.
+ *
+ * That is not a preference. The estate's own applications were built the other
+ * way round for a fortnight — a page at `#fcfcfd` under cards at `#ffffff` — and
+ * looked flat and unfinished in light mode while looking fine in dark. Two
+ * shades of white a printer cannot tell apart give a card no edges, and no
+ * amount of shadow or border rescues it.
+ */
+
+:root {
+  --accent: #0f766e;
+  --accent-fg: #ffffff;
+  --accent-soft: #e6f2f1;
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --text: #0b1220;
+  --muted: #4b5563;
+  --radius: 0.875rem;
+
+  color-scheme: light;
+
+  /* Derived, so a variant never has to supply them.
+     `color-mix` keeps borders and shadows in the palette's own family — a warm
+     brand gets warm greys, a cool one gets cool greys — instead of the same
+     neutral slate everywhere, which is what makes template sites look alike. */
+  --border: color-mix(in oklab, var(--text) 12%, transparent);
+  --border-strong: color-mix(in oklab, var(--text) 22%, transparent);
+  --surface-2: color-mix(in oklab, var(--text) 5%, var(--surface));
+  --shadow-1: 0 1px 2px color-mix(in oklab, var(--text) 8%, transparent);
+  --shadow-2: 0 8px 24px -8px color-mix(in oklab, var(--text) 22%, transparent);
+}
+
+:root[data-theme="dark"] {
+  --accent: #2dd4bf;
+  --accent-fg: #04201f;
+  --accent-soft: #0e2a29;
+  --bg: #07090c;
+  --surface: #11151b;
+  --text: #e8edf4;
+  --muted: #9aa7b8;
+
+  color-scheme: dark;
+
+  /* Dark mode builds depth with light rather than shadow: a border made of the
+     text colour at low opacity reads as a lit edge, which is what a raised card
+     looks like on a dark surface. A shadow there does nothing — black on black. */
+  --border: color-mix(in oklab, var(--text) 14%, transparent);
+  --border-strong: color-mix(in oklab, var(--text) 26%, transparent);
+  --surface-2: color-mix(in oklab, var(--text) 6%, var(--surface));
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 12px 32px -12px rgb(0 0 0 / 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #2dd4bf;
+    --accent-fg: #04201f;
+    --accent-soft: #0e2a29;
+    --bg: #07090c;
+    --surface: #11151b;
+    --text: #e8edf4;
+    --muted: #9aa7b8;
+
+    color-scheme: dark;
+
+    --border: color-mix(in oklab, var(--text) 14%, transparent);
+    --border-strong: color-mix(in oklab, var(--text) 26%, transparent);
+    --surface-2: color-mix(in oklab, var(--text) 6%, var(--surface));
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 12px 32px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --radius-card: var(--radius);
+
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-heading), var(--font-body), ui-sans-serif, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/**
+ * A line length that can be read.
+ *
+ * Roughly 65 characters. Prose wider than this is measurably harder to read —
+ * the eye loses the start of the next line — and it is the single commonest way
+ * a wide screen makes a page worse rather than better.
+ */
+.measure {
+  max-width: 62ch;
+}
+
+/** The page's own gutter, so every section lines up without repeating itself. */
+.container-page {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .container-page {
+    padding-inline: 2rem;
+  }
+}
+
+/* Anybody who has asked their system to stop moving things gets a still page. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

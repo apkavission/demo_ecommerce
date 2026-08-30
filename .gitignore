@@ -1,0 +1,51 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+# Any other build output, including the one a verification build writes while
+# the dev server keeps `.next`. Tailwind v4 finds its own sources and skips
+# whatever git ignores -- an unignored build directory gets scanned, and the
+# class-shaped strings inside it compile to CSS that will not parse.
+/.next-*/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Playwright output. A run artefact, not source — and `.last-run.json` changes
+# on every run, which makes every commit look like it touched the tests.
+/test-results/
+/playwright-report/
