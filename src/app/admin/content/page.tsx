@@ -73,7 +73,7 @@ export default async function ContentPage({ searchParams }: Props) {
       {/* ---------------------------------------------------------------- */}
       <section className="mt-12">
         <h2 className="font-display text-xl font-semibold">Collections</h2>
-        <ul className="mt-4 divide-y divide-border rounded-[var(--radius-card)] border border-border bg-surface px-6">
+        <ul className="mt-4 divide-y divide-border card px-6">
           {collections.map((collection) => (
             <li key={collection.id} className="flex items-center gap-4 py-4">
               <span className="min-w-0 flex-1">
@@ -95,7 +95,7 @@ export default async function ContentPage({ searchParams }: Props) {
       {/* ---------------------------------------------------------------- */}
       <section className="mt-12">
         <h2 className="font-display text-xl font-semibold">People</h2>
-        <ul className="mt-4 divide-y divide-border rounded-[var(--radius-card)] border border-border bg-surface px-6">
+        <ul className="mt-4 divide-y divide-border card px-6">
           {people.map((person) => (
             <li key={person.id} className="flex items-center gap-4 py-4">
               <span className="min-w-0 flex-1">
@@ -117,7 +117,7 @@ export default async function ContentPage({ searchParams }: Props) {
           customers, with their permission.
         </p>
 
-        <ul className="mt-4 divide-y divide-border rounded-[var(--radius-card)] border border-border bg-surface px-6">
+        <ul className="mt-4 divide-y divide-border card px-6">
           {testimonials.map((testimonial) => (
             <li key={testimonial.id} className="flex items-start gap-4 py-4">
               <span className="min-w-0 flex-1">
@@ -143,7 +143,7 @@ export default async function ContentPage({ searchParams }: Props) {
       <section className="mt-12">
         <h2 className="font-display text-xl font-semibold">Questions</h2>
 
-        <div className="mt-4 rounded-[var(--radius-card)] border border-border bg-surface p-6">
+        <div className="mt-4 card p-6">
           <h3 className="mb-4 text-sm font-medium text-muted">Add one</h3>
           <FaqEditor variantId={current.id} />
         </div>
@@ -152,7 +152,7 @@ export default async function ContentPage({ searchParams }: Props) {
           {faqs.map((faq) => (
             <li
               key={faq.id}
-              className="rounded-[var(--radius-card)] border border-border bg-surface p-6"
+              className="card p-6"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">

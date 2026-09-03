@@ -1,8 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { ShieldCheck } from "lucide-react";
-import { AdminNav } from "@/components/admin/nav";
-import { getAdminSession, isManager, type AdminSession } from "@/lib/auth";
+import { AdminShell } from "@/components/admin/shell";
+import { getAdminSession, isManager } from "@/lib/auth";
 import { signOut } from "@/lib/actions/admin";
 
 export const metadata: Metadata = {
@@ -13,103 +11,65 @@ export const metadata: Metadata = {
 /**
  * The panel's shell.
  *
- * ---------------------------------------------------------------------------
- * **The menu is built from the role, and entries somebody may not use are
- * absent rather than disabled.**
+ * A rail beside the work rather than a strip of links above it — the shape the
+ * company admin uses, so the nine applications read as one company's work
+ * rather than as products bought from different people. `AdminShell` holds the
+ * markup and the reasoning; this file decides only who is asking and what they
+ * may open.
  *
- * A greyed-out "Share links" tells a colleague that a feature exists which they
- * may not have, which is an invitation to ask why — and the honest answer is a
- * conversation about seniority nobody wanted to have over a menu item.
- *
- * **Three tiers here, where the other demos have two.** A shop has a job that
- * is neither owner nor administrator: the person who packs orders. They get
- * Orders and Messages, and no way to change a price — not because they are not
- * trusted, but because a pricing mistake made while packing is a mistake nobody
- * is looking for.
- *
- * The role is written in the header on purpose. Somebody wondering why they
- * cannot edit the catalogue should be able to see what they are signed in as
- * without asking anybody.
+ * **Three tiers here, not two.** The other demos have staff and super admins; a
+ * shop also has a manager, who runs the catalogue and the discount codes
+ * without being able to hand out share links. Each tier's extra entries are
+ * absent rather than disabled for anybody below it, and the role is written in
+ * the header — somebody wondering why they cannot edit the catalogue can see
+ * what they are signed in as without asking.
  *
  * **No shop branding anywhere.** This screen belongs to us. Dressing it in Kora
  * Label's sand and ink would be pretending an invented shop has staff.
+ *
+ * The sign-in page lives under this layout and must render without a session,
+ * which is why the shell is not wrapped around everything unconditionally.
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getAdminSession();
 
-  /* The sign-in page lives under this layout and must render without one. */
   if (!session) return <>{children}</>;
 
   const manager = await isManager();
 
-  return (
-    <Shell session={session} manager={manager}>
-      {children}
-    </Shell>
-  );
-}
-
-function Shell({
-  session,
-  manager,
-  children,
-}: {
-  session: AdminSession;
-  manager: boolean;
-  children: React.ReactNode;
-}) {
   const items = [
     { href: "/admin", label: "Today" },
     { href: "/admin/orders", label: "Orders" },
+    { href: "/admin/enquiries", label: "Enquiries" },
     ...(manager
       ? [
           { href: "/admin/catalogue", label: "Catalogue" },
           { href: "/admin/coupons", label: "Codes" },
           { href: "/admin/content", label: "Content" },
+          { href: "/admin/pages", label: "Pages" },
+          { href: "/admin/menu", label: "Menu" },
         ]
       : []),
     ...(session.isSuperAdmin
       ? [
+          { href: "/admin/media", label: "Pictures" },
           { href: "/admin/variants", label: "Shops" },
+          { href: "/admin/branding", label: "Brand" },
           { href: "/admin/links", label: "Share links" },
         ]
       : []),
   ];
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-border bg-surface">
-        <div className="container-page flex h-16 items-center gap-6">
-          <Link href="/admin" className="font-display font-semibold tracking-tight">
-            Store demo
-          </Link>
-
-          <AdminNav items={items} className="hidden sm:flex" />
-
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden items-center gap-2 text-sm text-muted sm:flex">
-              {session.name}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-medium text-text">
-                {session.isSuperAdmin && <ShieldCheck className="size-3" aria-hidden />}
-                {session.roleLabel}
-              </span>
-            </span>
-
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-2"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-
-        <AdminNav items={items} className="container-page flex-wrap pb-3 sm:hidden" />
-      </header>
-
-      <main className="flex-1">{children}</main>
-    </div>
+    <AdminShell
+      brand="Store demo"
+      items={items}
+      name={session.name}
+      roleLabel={session.roleLabel}
+      isSuperAdmin={session.isSuperAdmin}
+      signOutAction={signOut}
+    >
+      {children}
+    </AdminShell>
   );
 }

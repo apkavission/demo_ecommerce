@@ -44,7 +44,7 @@ export default async function VariantsPage() {
         {variants.map((variant) => (
           <li
             key={variant.id}
-            className="rounded-[var(--radius-card)] border border-border bg-surface p-6"
+            className="card p-6"
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">

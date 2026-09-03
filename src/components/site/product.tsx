@@ -1,13 +1,15 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { BrandSpinner } from "@/components/brand/brand-loader";
 import Link from "next/link";
-import { Loader2, Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { addToCart, applyCoupon, setQuantity } from "@/lib/actions/public";
 import { idleState, type FormState } from "@/lib/form-state";
 import { discountPercent, formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { ProductOptionRow, ProductRow } from "@/types/database";
+import { useBusyWhile } from "@/components/forms/use-busy-while";
 
 /**
  * The bits of a shop a visitor actually touches.
@@ -141,6 +143,7 @@ export function AddToCart({
   symbol: string;
 }) {
   const [state, action, pending] = useActionState(addToCart, idleState);
+  useBusyWhile(pending, "Adding to cart");
   const [chosen, setChosen] = useState(options[0]?.id ?? "");
   const [quantity, setLocalQuantity] = useState(1);
 
@@ -230,7 +233,7 @@ export function AddToCart({
           disabled={pending || soldOut}
           className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+          {pending && <BrandSpinner />}
           {soldOut ? "Sold out" : `Add · ${formatMoney(unit * quantity, symbol)}`}
         </button>
       </div>
@@ -256,6 +259,7 @@ export function LineQuantity({
   stock: number | null;
 }) {
   const [state, action, pending] = useActionState(setQuantity, idleState);
+  useBusyWhile(pending, "Saving quantity");
 
   /*
     Three separate submit buttons rather than one input and a save.
@@ -329,6 +333,7 @@ export function CouponBox({
   note: string | null;
 }) {
   const [state, action, pending] = useActionState(applyCoupon, idleState);
+  useBusyWhile(pending, "Applying coupon");
 
   return (
     <form action={action} className="space-y-2">

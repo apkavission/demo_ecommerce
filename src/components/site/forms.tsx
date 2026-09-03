@@ -1,11 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
+import { BrandSpinner } from "@/components/brand/brand-loader";
 import Link from "next/link";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { placeOrder, sendMessage, type PlacedOrder } from "@/lib/actions/public";
 import { idleState, type FormState } from "@/lib/form-state";
 import { cn } from "@/lib/utils";
+import { useBusyWhile } from "@/components/forms/use-busy-while";
 
 /**
  * The two forms that write something down.
@@ -81,6 +83,7 @@ const initialOrder: PlacedOrder = { status: "idle" };
 
 export function CheckoutForm({ variant, base }: { variant: string; base: string }) {
   const [state, action, pending] = useActionState(placeOrder, initialOrder);
+  useBusyWhile(pending, "Placing order");
 
   /*
     The confirmation replaces the form rather than sitting above it.
@@ -196,7 +199,7 @@ export function CheckoutForm({ variant, base }: { variant: string; base: string 
         disabled={pending}
         className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-60 sm:w-auto"
       >
-        {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+        {pending && <BrandSpinner />}
         {pending ? "Placing the order" : "Place the order"}
       </button>
     </form>
@@ -209,6 +212,7 @@ export function CheckoutForm({ variant, base }: { variant: string; base: string 
 
 export function ContactForm({ variant }: { variant: string }) {
   const [state, action, pending] = useActionState(sendMessage, idleState);
+  useBusyWhile(pending, "Sending message");
 
   return (
     <form action={action} className="space-y-5">
@@ -239,7 +243,7 @@ export function ContactForm({ variant }: { variant: string }) {
         disabled={pending}
         className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-60"
       >
-        {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+        {pending && <BrandSpinner />}
         {pending ? "Sending" : "Send"}
       </button>
     </form>

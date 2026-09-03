@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { Loader2 } from "lucide-react";
+import { BrandSpinner } from "@/components/brand/brand-loader";
+
 import { signIn } from "@/lib/actions/admin";
 import { idleState } from "@/lib/form-state";
+import { useBusyWhile } from "@/components/forms/use-busy-while";
 
 /**
  * The panel's front door.
@@ -18,6 +20,7 @@ import { idleState } from "@/lib/form-state";
  */
 export default function AdminLogin() {
   const [state, action, pending] = useActionState(signIn, idleState);
+  useBusyWhile(pending, "Signing in in");
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-6 py-16">
@@ -70,7 +73,7 @@ export default function AdminLogin() {
             disabled={pending}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-60"
           >
-            {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+            {pending && <BrandSpinner />}
             {pending ? "Signing in" : "Sign in"}
           </button>
         </form>

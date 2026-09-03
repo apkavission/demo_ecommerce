@@ -34,8 +34,18 @@ export const AUTH_COOKIE_PREFIX = "sb-";
 /**
  * The cookie a share link leaves behind.
  *
- * Holds the variant the link opened and nothing else — no token, no expiry, no
- * claim the browser could edit. Every request re-checks the link against the
- * database, so this cookie is a hint about *which* link, never a grant.
+ * Holds the token, and nothing else — no variant, no expiry, no claim the
+ * browser could edit. Every request re-checks that token against the database,
+ * so this cookie is a hint about *which* link to look up, never a grant: a link
+ * revoked a minute ago stops working on the next request, whatever the browser
+ * is still carrying.
+ *
+ * (This comment said "the variant and not the token" until 2026-09-03. It was
+ * describing a design that was never built, and it was describing it in the one
+ * place somebody checks before deciding whether a cookie is sensitive.)
+ *
+ * Two more are derived from this name in `proxy.ts`: `-seen`, which keeps one
+ * sitting from being counted twice, and `-why`, which carries the token to the
+ * expired screen for ten minutes so it can say what happened.
  */
 export const SHARE_COOKIE = "demo-ecommerce-share";

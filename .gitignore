@@ -49,3 +49,7 @@ next-env.d.ts
 # on every run, which makes every commit look like it touched the tests.
 /test-results/
 /playwright-report/
+
+# The redeemed share link the browser tests run behind. A live token — never
+# committed, and remade by the setup project on every run.
+/e2e/.auth/

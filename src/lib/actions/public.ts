@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { acknowledgeOrder } from "@/lib/email/acknowledge";
 import { fieldErrors, type FormState } from "@/lib/form-state";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -378,6 +379,25 @@ export async function placeOrder(
   /* The basket row is deleted inside the function; the cookie is dropped here so
      the next visit starts clean rather than pointing at nothing. */
   await forgetCart();
+
+  /*
+    The confirmation, after the order is already placed and the basket gone.
+
+    It cannot undo any of that: `acknowledgeOrder` swallows every mail failure
+    by design. A confirmation that does not arrive is a missing courtesy; an
+    order that fails because of an email would be a lost sale.
+  */
+  await acknowledgeOrder({
+    variantSlug: variant,
+    to: email || null,
+    name,
+    orderCode: result.order_code ?? "",
+    phone,
+    addressLine: address_line,
+    city,
+    pincode,
+    note,
+  });
 
   revalidatePath(`/${variant}`, "layout");
 

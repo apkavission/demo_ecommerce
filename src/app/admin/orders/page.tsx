@@ -65,7 +65,7 @@ export default async function OrdersPage() {
             <li
               key={order.id}
               id={order.code}
-              className="rounded-[var(--radius-card)] border border-border bg-surface p-6 scroll-mt-24"
+              className="card p-6 scroll-mt-24"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">

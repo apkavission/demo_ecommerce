@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openPage } from "./open";
 
 const VARIANT = "fashion";
 
@@ -12,7 +13,7 @@ const VARIANT = "fashion";
  */
 
 test("the contact form refuses an empty message and says where", async ({ page }) => {
-  await page.goto(`/${VARIANT}/contact`);
+  await openPage(page, VARIANT, "contact");
 
   const form = page.locator("form").filter({ has: page.locator("textarea") }).first();
   await form.getByRole("button", { name: /send/i }).click();
@@ -24,7 +25,7 @@ test("the contact form refuses an empty message and says where", async ({ page }
 });
 
 test("a message with a bad address does not silently succeed", async ({ page }) => {
-  await page.goto(`/${VARIANT}/contact`);
+  await openPage(page, VARIANT, "contact");
 
   await page.locator('input[name="name"]').fill("Test Person");
   await page.locator('input[name="email"]').fill("not-an-address");

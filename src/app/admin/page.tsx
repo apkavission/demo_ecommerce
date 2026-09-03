@@ -206,7 +206,7 @@ export default async function Dashboard() {
             {(unread.data ?? []).map((message) => (
               <li
                 key={message.id}
-                className="rounded-[var(--radius-card)] border border-border bg-surface p-5"
+                className="card p-5"
               >
                 <p className="text-sm font-medium">{message.name}</p>
                 <p className="measure mt-1.5 text-sm text-muted">{message.body}</p>
@@ -232,7 +232,7 @@ function Stat({
   hint: string;
 }) {
   return (
-    <li className="rounded-[var(--radius-card)] border border-border bg-surface p-5">
+    <li className="card p-5">
       <p className="flex items-center gap-2 text-xs text-muted">
         <span className="text-accent">{icon}</span>
         {label}

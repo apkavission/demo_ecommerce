@@ -77,7 +77,7 @@ export default async function CataloguePage({ searchParams }: Props) {
         </nav>
       )}
 
-      <ul className="mt-8 rounded-[var(--radius-card)] border border-border bg-surface px-6">
+      <ul className="mt-8 card px-6">
         {products.map((product) => (
           <ProductRowEditor
             key={product.id}

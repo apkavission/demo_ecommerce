@@ -33,7 +33,7 @@
   --bg: #f4f6f8;
   --surface: #ffffff;
   --text: #0b1220;
-  --muted: #4b5563;
+  --muted: #334155;
   --radius: 0.875rem;
 
   color-scheme: light;
@@ -44,9 +44,40 @@
      neutral slate everywhere, which is what makes template sites look alike. */
   --border: color-mix(in oklab, var(--text) 12%, transparent);
   --border-strong: color-mix(in oklab, var(--text) 22%, transparent);
-  --surface-2: color-mix(in oklab, var(--text) 5%, var(--surface));
-  --shadow-1: 0 1px 2px color-mix(in oklab, var(--text) 8%, transparent);
-  --shadow-2: 0 8px 24px -8px color-mix(in oklab, var(--text) 22%, transparent);
+
+  /*
+    The second surface carries a trace of the accent, not just of the text.
+
+    It was 5% of the text colour — a grey so close to white that alternating
+    sections had no rhythm at all, and the page read as one long scroll. Mixing
+    the brand in gives the band a temperature, which is what makes a warm
+    business look warm rather than look like the same template in a different
+    button colour.
+  */
+  --surface-2: color-mix(
+    in oklab,
+    var(--accent) 6%,
+    color-mix(in oklab, var(--text) 4%, var(--surface))
+  );
+
+  /*
+    Two-layer shadows, and the reason is that one layer cannot do it.
+
+    A single soft shadow makes a card float; a single tight one makes it look
+    printed. Real objects have both — a close contact shadow that says the card
+    is touching, and a wide ambient one that says there is space under it. The
+    old `0 1px 2px` at 8% was the printed kind, which is why every card looked
+    like part of the background.
+
+    Tinted with the accent so the shadow belongs to the brand. A neutral grey
+    shadow under a warm card is the small wrongness that reads as "stock".
+  */
+  --shadow-1:
+    0 1px 2px color-mix(in oklab, var(--text) 10%, transparent),
+    0 4px 12px -6px color-mix(in oklab, var(--accent) 18%, transparent);
+  --shadow-2:
+    0 2px 4px color-mix(in oklab, var(--text) 8%, transparent),
+    0 18px 40px -16px color-mix(in oklab, var(--accent) 34%, transparent);
 }
 
 :root[data-theme="dark"] {
@@ -55,8 +86,8 @@
   --accent-soft: #0e2a29;
   --bg: #07090c;
   --surface: #11151b;
-  --text: #e8edf4;
-  --muted: #9aa7b8;
+  --text: #f3f6fb;
+  --muted: #c8d3e0;
 
   color-scheme: dark;
 
@@ -66,8 +97,14 @@
   --border: color-mix(in oklab, var(--text) 14%, transparent);
   --border-strong: color-mix(in oklab, var(--text) 26%, transparent);
   --surface-2: color-mix(in oklab, var(--text) 6%, var(--surface));
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-2: 0 12px 32px -12px rgb(0 0 0 / 0.6);
+  /* On dark, the ambient layer is what separates a card from the page — there
+     is no light side to catch. */
+  --shadow-1:
+    0 1px 2px rgb(0 0 0 / 0.5),
+    0 4px 14px -6px rgb(0 0 0 / 0.5);
+  --shadow-2:
+    0 2px 6px rgb(0 0 0 / 0.4),
+    0 20px 44px -16px rgb(0 0 0 / 0.75);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -77,8 +114,8 @@
     --accent-soft: #0e2a29;
     --bg: #07090c;
     --surface: #11151b;
-    --text: #e8edf4;
-    --muted: #9aa7b8;
+    --text: #f3f6fb;
+    --muted: #c8d3e0;
 
     color-scheme: dark;
 
@@ -154,4 +191,317 @@ body {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ===========================================================================
+   The brand loader.
+
+   Appended when the loader was brought across from the portal on 2026-08-31.
+   Every project in the estate shows the same wait — the mark resolves in the
+   centre while the two halves of the name close in on it, "Apka" from the
+   left and "Vission" from the right — so a wait is recognisably ours rather
+   than a borrowed spinner.
+
+   This demo had none of it: no loader component, no keyframes, and not one
+   `loading.tsx`, which is why a click sat on the old page for ten or thirty
+   seconds with nothing to say it had been heard.
+
+   Only what `brand-loader.tsx` actually reads is defined here. The names and
+   values match `services/src/app/globals.css` and the portal's; keep them in
+   step by hand, as those two already are.
+   ======================================================================== */
+
+:root {
+  /* The demo palette has `--muted` but no third step, and the loader's label
+     sits below muted. */
+  --text-subtle: #475569;
+
+  --duration-base: 200ms;
+  --duration-slow: 400ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --text-subtle: #a9b6c6;
+  }
+}
+
+:root[data-theme="dark"] {
+  --text-subtle: #a9b6c6;
+}
+
+@theme inline {
+  --color-text-subtle: var(--text-subtle);
+}
+
+@keyframes brand-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The two halves of the name start behind the mark and settle outward, so
+   the name looks like it comes out of the logo rather than flying at it. */
+@keyframes brand-word-left {
+  from {
+    opacity: 0;
+    transform: translateX(2rem) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes brand-word-right {
+  from {
+    opacity: 0;
+    transform: translateX(-2rem) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Runs while the wait continues, so a slow response never looks frozen. */
+@keyframes brand-breathe {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(0.985);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+}
+
+/* The mark's own rising arrow, drawing itself and clearing, for as long as
+   the wait lasts. */
+@keyframes brand-arrow-draw {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  62% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  86% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Which mark is drawn, decided in CSS.
+
+   Both files are emitted and one is hidden, so the correct symbol is right in
+   the first painted frame — before hydration, and with JavaScript turned off.
+   Choosing in JavaScript would mean a blank loader on the one screen that
+   exists because hydration has not happened yet.
+   ------------------------------------------------------------------------ */
+@layer utilities {
+  .theme-dark-only {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-light-only {
+      display: none;
+    }
+    :root:not([data-theme="light"]) .theme-dark-only {
+      display: revert-layer;
+    }
+  }
+
+  :root[data-theme="light"] .theme-light-only {
+    display: revert-layer;
+  }
+  :root[data-theme="light"] .theme-dark-only {
+    display: none;
+  }
+
+  :root[data-theme="dark"] .theme-light-only {
+    display: none;
+  }
+  :root[data-theme="dark"] .theme-dark-only {
+    display: revert-layer;
+  }
+}
+
+
+/* ===========================================================================
+   Presentation.
+
+   The vocabulary the pages already speak, given more to say. Every one of these
+   is used by all six demos through the same class names, so a change here is a
+   change to six businesses at once — which is the point, and the reason none of
+   it lives in a page file.
+   ======================================================================== */
+
+/**
+ * The wash behind a hero.
+ *
+ * ---------------------------------------------------------------------------
+ * **A demo has no photography and should not pretend to.** Stock imagery is the
+ * fastest way to make an invented business look invented, and a real client's
+ * site will carry their own pictures anyway. So the top of the page earns its
+ * presence from colour and shape instead: two soft pools of the brand's own
+ * accent, off-centre, under everything.
+ *
+ * Drawn with gradients rather than an image, so it costs no bytes, scales to
+ * any width, and follows the variant's colour without anybody exporting a new
+ * file per business.
+ */
+.hero-wash {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      70rem 32rem at 12% -18%,
+      color-mix(in oklab, var(--accent) 16%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      46rem 28rem at 92% 8%,
+      color-mix(in oklab, var(--accent) 11%, transparent),
+      transparent 60%
+    ),
+    var(--surface);
+}
+
+/*
+  A hairline of the accent along the bottom, instead of the flat grey border.
+
+  It is two pixels of colour and it is what makes the hero read as the top of
+  something rather than as the first of several identical bands.
+*/
+.hero-wash::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in oklab, var(--accent) 45%, transparent),
+    transparent
+  );
+}
+
+/**
+ * A card, once, rather than eleven times across six projects.
+ *
+ * The lift on hover is deliberately small — two pixels and a deeper ambient
+ * shadow. A card that jumps is a card that was designed to be noticed rather
+ * than used, and on a touch screen there is no hover at all, so nothing here
+ * may depend on it.
+ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  transition:
+    box-shadow 200ms ease,
+    transform 200ms ease,
+    border-color 200ms ease;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    box-shadow: var(--shadow-2);
+    border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
+    transform: translateY(-2px);
+  }
+}
+
+/**
+ * The small uppercase label above a heading.
+ *
+ * Standardised because it appeared with three different letter-spacings across
+ * the six demos, and inconsistent tracking is the kind of thing nobody can name
+ * and everybody feels.
+ */
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/**
+ * A short rule under a section heading.
+ *
+ * Four rems of the accent. It does the job a heavier type weight would do
+ * without shouting, and it gives each section a visible start — which is what
+ * the page was missing when every band was the same white.
+ */
+.rule-accent::before {
+  content: "";
+  display: block;
+  width: 2.75rem;
+  height: 3px;
+  margin-bottom: 1.25rem;
+  border-radius: 999px;
+
+  /*
+    Follows the text it sits above.
+
+    A block-level pseudo-element takes the left edge of its container whatever
+    the text alignment is, which put a left-aligned dash above a centred
+    heading. An auto inline margin inside centred text puts it where the eye
+    expects; left-aligned is the ordinary case and auto margins have no
+    effect on it, so one rule covers both.
+  */
+  margin-inline: var(--rule-inline, 0) auto;
+  background: linear-gradient(
+    to right,
+    var(--accent),
+    color-mix(in oklab, var(--accent) 35%, transparent)
+  );
+}
+
+/**
+ * Display type, set the way display type wants to be set.
+ *
+ * Large sizes need tighter tracking and tighter leading than body copy, and the
+ * default for both is tuned for paragraphs. Without this a 48px heading has the
+ * airy spacing of 16px text, which is the single commonest reason a competent
+ * page looks amateur.
+ */
+.display-1 {
+  font-size: clamp(2.5rem, 1.4rem + 3.6vw, 3.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+}
+
+.display-2 {
+  font-size: clamp(1.75rem, 1.2rem + 1.8vw, 2.5rem);
+  line-height: 1.12;
+  letter-spacing: -0.022em;
+}
+
+/* Inside centred text, the rule centres with it. */
+.text-center .rule-accent::before,
+.rule-accent.text-center::before {
+  --rule-inline: auto;
 }

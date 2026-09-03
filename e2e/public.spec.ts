@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openPage, openVariant } from "./open";
 
 const VARIANTS = ["fashion", "electronics", "grocery"];
 const PAGES = ["shop", "people", "reviews", "questions", "contact"];
@@ -21,7 +22,7 @@ test.describe("the public site", () => {
 
   for (const variant of VARIANTS) {
     test(`/${variant} renders its own name`, async ({ page }) => {
-      await page.goto(`/${variant}`);
+      await openVariant(page, variant);
 
       // The business name is in the header link, and it is different per
       // variant -- which is the whole claim this demo makes.
@@ -34,7 +35,7 @@ test.describe("the public site", () => {
 
   for (const path of PAGES) {
     test(`/${VARIANTS[0]}/${path} renders`, async ({ page }) => {
-      const response = await page.goto(`/${VARIANTS[0]}/${path}`);
+      const response = await openPage(page, VARIANTS[0], path);
 
       expect(response?.status()).toBeLessThan(400);
       await expect(page.locator("h1")).toBeVisible();
@@ -45,7 +46,7 @@ test.describe("the public site", () => {
     const headings: string[] = [];
 
     for (const variant of VARIANTS) {
-      await page.goto(`/${variant}`);
+      await openVariant(page, variant);
       headings.push((await page.locator("h1").first().textContent()) ?? "");
     }
 
@@ -56,7 +57,7 @@ test.describe("the public site", () => {
 
   test("nothing scrolls sideways", async ({ page }) => {
     for (const variant of VARIANTS) {
-      await page.goto(`/${variant}`);
+      await openVariant(page, variant);
 
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -67,7 +68,7 @@ test.describe("the public site", () => {
   });
 
   test("every demo says it is a demo", async ({ page }) => {
-    await page.goto(`/${VARIANTS[0]}`);
+    await openVariant(page, VARIANTS[0]);
 
     // A prospect must never be in doubt. It is the one line that may not be
     // removed to make the demo more convincing.
@@ -75,7 +76,7 @@ test.describe("the public site", () => {
   });
 
   test("the demo is never indexed", async ({ page }) => {
-    await page.goto(`/${VARIANTS[0]}`);
+    await openVariant(page, VARIANTS[0]);
 
     const robots = page.locator('head meta[name="robots"]');
     await expect(robots).toHaveAttribute("content", /noindex/);
@@ -84,7 +85,7 @@ test.describe("the public site", () => {
 
 test.describe("dark mode", () => {
   test("the toggle changes the page and survives a reload", async ({ page }) => {
-    await page.goto(`/${VARIANTS[0]}`);
+    await openVariant(page, VARIANTS[0]);
 
     const before = await page.evaluate(
       () => getComputedStyle(document.body).backgroundColor,
@@ -118,7 +119,7 @@ test.describe("dark mode", () => {
     const backgrounds: string[] = [];
 
     for (const variant of VARIANTS) {
-      await page.goto(`/${variant}`);
+      await openVariant(page, variant);
       await page.evaluate(() =>
         document.documentElement.setAttribute("data-theme", "dark"),
       );
@@ -135,18 +136,64 @@ test.describe("dark mode", () => {
 });
 
 test.describe("what a visitor must not reach", () => {
-  test("the panel asks for a sign-in", async ({ page }) => {
+  test("somebody holding a link never finds the panel", async ({ page }) => {
+    await openVariant(page, VARIANTS[0]);
     await page.goto("/admin");
-    await expect(page).toHaveURL(/\/admin\/login/);
+
+    /*
+      Sent back to their own business, not to the sign-in screen.
+
+      A prospect reading a demo has no business in the panel and should not even
+      discover that there is one. The sign-in screen is for somebody who came
+      looking for it, which is the next test.
+    */
+    await expect(page).toHaveURL(new RegExp(`/${VARIANTS[0]}$`));
   });
 
-  test("a business that does not exist is not found", async ({ page }) => {
+  test("the panel asks a stranger for a sign-in", async ({ browser }) => {
+    /*
+      Genuinely empty, not merely new.
+
+      newContext() on its own inherits the project's saved state, so
+      the "stranger" arrived holding the share cookie and was let straight in —
+      a test that passed for the wrong reason and then failed for the right one.
+      Stating an empty state is the only way to be sure.
+    */
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const page = await context.newPage();
+
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/admin\/login/);
+
+    await context.close();
+  });
+
+  test("a mistyped address does not look like a dead link", async ({ page }) => {
+    await openVariant(page, VARIANTS[0]);
+    await page.goto("/not-a-real-business");
+
+    /*
+      Sent to the business their link opens.
+
+      They typed something wrong; they did not lose access. Answering that with
+      the expired screen would tell somebody their link had died when it had
+      not, which is the support call this avoids.
+    */
+    await expect(page).toHaveURL(new RegExp(`/${VARIANTS[0]}$`));
+  });
+
+  test("a stranger gets nothing from a made-up address", async ({ browser }) => {
+    /* Empty, not merely new — see the note above. */
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const page = await context.newPage();
+
     const response = await page.goto("/not-a-real-business");
 
-    // Either a 404 or a redirect to the expired screen. Both are correct; what
-    // would be wrong is a 200 rendering an empty site.
-    const url = page.url();
-    expect(response?.status() === 404 || url.includes("/expired")).toBe(true);
+    /* A 404 or the expired screen; both are correct. What would be wrong is a
+       200 rendering an empty site. */
+    expect(response?.status() === 404 || page.url().includes("/expired")).toBe(true);
+
+    await context.close();
   });
 
   test("a made-up share link goes nowhere", async ({ page }) => {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Copy, CopyPlus, Link2Off, Loader2 } from "lucide-react";
+import { BrandSpinner } from "@/components/brand/brand-loader";
+import { Copy, CopyPlus, Link2Off } from "lucide-react";
 import {
   cloneVariant,
   createShareLink,
@@ -17,6 +18,7 @@ import {
 import { idleState, type FormState } from "@/lib/form-state";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { useBusyWhile } from "@/components/forms/use-busy-while";
 import type {
   CollectionRow,
   CouponRow,
@@ -74,6 +76,7 @@ const PAYMENT_STATES = ["pending", "paid", "refunded", "failed"] as const;
  */
 export function OrderControls({ order }: { order: OrderRow }) {
   const [state, action, pending] = useActionState(updateOrder, idleState);
+  useBusyWhile(pending, "Saving order");
 
   return (
     <div className="space-y-3">
@@ -143,6 +146,7 @@ export function OrderControls({ order }: { order: OrderRow }) {
  */
 export function StockBox({ product }: { product: ProductRow }) {
   const [state, action, pending] = useActionState(setStock, idleState);
+  useBusyWhile(pending, "Saving stock");
 
   return (
     <form action={action} className="flex items-center gap-2">
@@ -184,6 +188,7 @@ export function PublishToggle({
   status: string;
 }) {
   const [state, action, pending] = useActionState(setPublished, idleState);
+  useBusyWhile(pending, "Saving published");
   const next = status === "published" ? "draft" : "published";
 
   return (
@@ -234,6 +239,7 @@ export function ProductEditor({
   onDone?: () => void;
 }) {
   const [state, action, pending] = useActionState(saveProduct, idleState);
+  useBusyWhile(pending, "Saving product");
 
   return (
     <form action={action} className="space-y-4">
@@ -427,7 +433,7 @@ export function ProductEditor({
           disabled={pending}
           className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-60"
         >
-          {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+          {pending && <BrandSpinner />}
           {pending ? "Saving" : product ? "Save" : "Add it"}
         </button>
 
@@ -541,6 +547,7 @@ export function CouponEditor({
   symbol: string;
 }) {
   const [state, action, pending] = useActionState(saveCoupon, idleState);
+  useBusyWhile(pending, "Saving coupon");
   const [kind, setKind] = useState<"percent" | "amount">(coupon?.kind ?? "percent");
 
   return (
@@ -666,7 +673,7 @@ export function CouponEditor({
           disabled={pending}
           className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-60"
         >
-          {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+          {pending && <BrandSpinner />}
           {pending ? "Saving" : coupon ? "Save" : "Make it"}
         </button>
 
@@ -682,6 +689,7 @@ export function CouponEditor({
 
 export function FaqEditor({ variantId, faq }: { variantId: string; faq?: FaqRow }) {
   const [state, action, pending] = useActionState(saveFaq, idleState);
+  useBusyWhile(pending, "Saving faq");
 
   return (
     <form action={action} className="space-y-3">
@@ -742,6 +750,7 @@ export function VisibilityToggle({
   visibility: string;
 }) {
   const [state, action, pending] = useActionState(setVisibility, idleState);
+  useBusyWhile(pending, "Saving visibility");
   const next = visibility === "public" ? "link_only" : "public";
 
   return (
@@ -770,6 +779,7 @@ export function VisibilityToggle({
 export function CloneVariant({ id, name }: { id: string; name: string }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(cloneVariant, idleState);
+  useBusyWhile(pending, "Working");
 
   if (!open) {
     return (
@@ -830,7 +840,7 @@ export function CloneVariant({ id, name }: { id: string; name: string }) {
           disabled={pending}
           className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg disabled:opacity-60"
         >
-          {pending && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+          {pending && <BrandSpinner />}
           {pending ? "Copying" : "Copy"}
         </button>
 
@@ -858,6 +868,7 @@ export function ShareLinkForm({
   variants: { id: string; name: string }[];
 }) {
   const [state, action, pending] = useActionState(createShareLink, idleState);
+  useBusyWhile(pending, "Creating share link");
 
   return (
     <form action={action} className="grid gap-4 sm:grid-cols-2">
@@ -910,7 +921,7 @@ export function ShareLinkForm({
           disabled={pending}
           className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-fg disabled:opacity-60"
         >
-          {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+          {pending && <BrandSpinner />}
           {pending ? "Making it" : "Make a link"}
         </button>
 
@@ -948,6 +959,7 @@ export function CopyLink({ url }: { url: string }) {
 
 export function RevokeLink({ id }: { id: string }) {
   const [state, action, pending] = useActionState(revokeShareLink, idleState);
+  useBusyWhile(pending, "Working");
 
   return (
     <form action={action} className="inline-flex items-center gap-2">

@@ -16,6 +16,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+
+      /* `server-only` throws at collection under vitest — it is a bundler
+         guard, and the real check runs in `next build`. Stubbed so the email
+         frame, which is server-only, can be tested at all. */
+      "server-only": fileURLToPath(
+        new URL("./src/test/server-only-stub.ts", import.meta.url),
+      ),
     },
   },
 });

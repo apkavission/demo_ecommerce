@@ -7,6 +7,7 @@ import { themeCss } from "@/lib/theme";
 import { getNav, getVariant, listVariants } from "@/lib/variants";
 import { cartCount } from "@/lib/cart";
 import { formatMoney } from "@/lib/money";
+import { SiteLogo } from "@/components/site/site-logo";
 
 type Props = {
   children: React.ReactNode;
@@ -19,12 +20,54 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!variant) return { title: "Not found" };
 
+  /*
+    Every one of these falls back rather than being required.
+
+    A business set up this afternoon has a business name and usually a tagline,
+    and nothing else. It must still produce a full, sensible `<title>` and a
+    real share card — a demo that renders a blank title because nobody reached
+    the SEO screen is worse than one with no SEO screen at all.
+  */
+  const title = variant.metaTitle?.trim() || `${variant.businessName} — ${variant.tagline ?? variant.industryLabel}`;
+
+  const description =
+    variant.metaDescription?.trim() || variant.description || variant.tagline || undefined;
+
   return {
     title: {
-      default: `${variant.businessName} — ${variant.tagline ?? variant.industryLabel}`,
+      default: title,
+      /* The template keeps the name on every inner page, whatever the owner
+         wrote for the front one. */
       template: `%s — ${variant.businessName}`,
     },
-    description: variant.description ?? undefined,
+    description,
+
+    openGraph: {
+      title,
+      description,
+      siteName: variant.businessName,
+      type: "website",
+      images: variant.ogImage ? [{ url: variant.ogImage, width: 1200, height: 630 }] : undefined,
+    },
+
+    twitter: {
+      card: variant.ogImage ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: variant.ogImage ? [variant.ogImage] : undefined,
+    },
+
+    /*
+      Never indexed, whatever the visibility says.
+
+      `link_only` and `public` decide who may open a page that is handed to
+      them. Neither is an invitation to a crawler: these are demonstrations
+      carrying a prospect's name, and a demo that outranks the business it was
+      built for is a problem that takes months to undo. The fields above are
+      not wasted by this — they are the browser tab, the WhatsApp card, the
+      LinkedIn preview, and they are the exact fields the real site inherits
+      on the day one of these becomes it.
+    */
     robots: { index: false, follow: false, nocache: true },
   };
 }
@@ -95,8 +138,8 @@ export default async function VariantLayout({ children, params }: Props) {
         {/* ------------------------------------------------------------- */}
         <header className="relative border-b border-border bg-surface">
           <div className="container-page flex h-16 items-center gap-4">
-            <Link href={base} className="font-display text-lg font-semibold tracking-tight">
-              {variant.businessName}
+            <Link href={base} className="tracking-tight">
+              <SiteLogo variant={variant} />
             </Link>
 
             <div className="ml-auto flex items-center gap-2">

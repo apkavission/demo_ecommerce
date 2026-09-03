@@ -82,7 +82,7 @@ export default async function CouponsPage({ searchParams }: Props) {
         </nav>
       )}
 
-      <section className="mt-8 rounded-[var(--radius-card)] border border-border bg-surface p-6">
+      <section className="mt-8 card p-6">
         <h2 className="font-display mb-4 text-lg font-semibold">A new code</h2>
         <CouponEditor variantId={current.id} symbol={current.currencySymbol} />
       </section>
@@ -91,7 +91,7 @@ export default async function CouponsPage({ searchParams }: Props) {
         {rows.map((coupon) => (
           <li
             key={coupon.id}
-            className="rounded-[var(--radius-card)] border border-border bg-surface p-6"
+            className="card p-6"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <p className="font-mono text-lg font-semibold">{coupon.code}</p>

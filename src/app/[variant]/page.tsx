@@ -49,13 +49,13 @@ export default async function ShopHome({ params }: Props) {
   return (
     <>
       {/* ---------------------------------------------------------------- */}
-      <section className="border-b border-border bg-surface">
+      <section className="hero-wash">
         <div className="container-page py-20 md:py-28">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-accent">
+          <p className="eyebrow">
             {variant.industryLabel}
           </p>
 
-          <h1 className="font-display measure mt-4 text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl">
+          <h1 className="font-display display-1 measure mt-4 font-semibold">
             {variant.tagline ?? variant.businessName}
           </h1>
 
@@ -88,7 +88,7 @@ export default async function ShopHome({ params }: Props) {
       {shown.length > 0 && (
         <section className="container-page py-16">
           <div className="flex items-end justify-between gap-4">
-            <h2 className="font-display text-2xl font-semibold tracking-tight">
+            <h2 className="font-display display-2 rule-accent font-semibold">
               {featured.length > 0 ? "Worth looking at" : "In the shop"}
             </h2>
             <Link href={`${base}/shop`} className="text-sm text-accent hover:underline">
@@ -114,7 +114,7 @@ export default async function ShopHome({ params }: Props) {
       {collections.length > 0 && (
         <section className="border-y border-border bg-surface">
           <div className="container-page py-16">
-            <h2 className="font-display text-2xl font-semibold tracking-tight">
+            <h2 className="font-display display-2 rule-accent font-semibold">
               What we sell
             </h2>
 
@@ -125,7 +125,7 @@ export default async function ShopHome({ params }: Props) {
                   <li key={collection.id}>
                     <Link
                       href={`${base}/shop?in=${collection.slug}`}
-                      className="block h-full rounded-[var(--radius-card)] border border-border bg-bg p-6 transition-colors hover:border-accent"
+                      className="card block h-full p-6"
                     >
                       <h3 className="font-display text-lg font-semibold">
                         {collection.name}
@@ -196,7 +196,7 @@ export default async function ShopHome({ params }: Props) {
       {testimonials.length > 0 && (
         <section className="border-t border-border bg-surface">
           <div className="container-page py-16">
-            <h2 className="font-display text-2xl font-semibold tracking-tight">
+            <h2 className="font-display display-2 rule-accent font-semibold">
               What people said
             </h2>
 
@@ -204,7 +204,7 @@ export default async function ShopHome({ params }: Props) {
               {testimonials.slice(0, 3).map((entry) => (
                 <li
                   key={entry.id}
-                  className="rounded-[var(--radius-card)] border border-border bg-bg p-6"
+                  className="card p-6"
                 >
                   <p className="measure text-sm leading-relaxed">
                     &ldquo;{entry.quote}&rdquo;
@@ -230,7 +230,7 @@ export default async function ShopHome({ params }: Props) {
       {/* ---------------------------------------------------------------- */}
       {faqs.length > 0 && (
         <section className="container-page py-16">
-          <h2 className="font-display text-2xl font-semibold tracking-tight">
+          <h2 className="font-display display-2 rule-accent font-semibold">
             Asked often
           </h2>
 

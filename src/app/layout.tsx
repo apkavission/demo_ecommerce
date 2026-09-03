@@ -1,12 +1,24 @@
 import type { Metadata } from "next";
 import { Inter, Sora } from "next/font/google";
 import "./globals.css";
+import { BusyProvider } from "@/components/brand/busy-overlay";
 
 const body = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 const heading = Sora({ subsets: ["latin"], variable: "--font-heading", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Store demo",
+  /*
+    Named for the company that built it, not just for the demo.
+
+    A tab reading "Clinic demo" tells a prospect nothing about who made it —
+    and a demo is a sales document. The template puts every inner page under
+    the same name, so a client browsing five pages of a demo sees Apka Vission
+    on every one of them.
+  */
+  title: {
+    default: "Store demo · Apka Vission",
+    template: "%s · Store demo · Apka Vission",
+  },
   /*
     No demo is ever indexed.
 
@@ -39,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body>{children}</body>
+      <body><BusyProvider>{children}</BusyProvider></body>
     </html>
   );
 }
