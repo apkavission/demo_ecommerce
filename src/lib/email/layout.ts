@@ -8,7 +8,7 @@ import "server-only";
  *
  * The header is the business's own accent colour with its own name on it, and
  * the footer carries its phone and address. A prospect reading this is meant to
- * see their business answering their customer — a message headed "Apka Vission"
+ * see their business answering their customer — a message headed "Rahvian"
  * would be a message about us, at the exact moment the demo is trying to be
  * about them.
  *
@@ -191,7 +191,7 @@ export function renderDemoEmail(options: DemoEmailOptions): string {
         <tr>
           <td align="center" style="padding:14px 24px 0">
             <p style="margin:0;font:400 11px/1.6 ${FONT};color:${SUBTLE}">
-              This is a demonstration website built by Apka Vission. ${escapeHtml(brand.businessName)} is an example business.
+              This is a demonstration website built by Rahvian. ${escapeHtml(brand.businessName)} is an example business.
             </p>
           </td>
         </tr>

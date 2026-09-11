@@ -1,3 +1,4 @@
+import { fontPair, isFontPairKey } from "@/lib/fonts";
 import type { VariantPalette, VariantTheme } from "@/types/database";
 
 /**
@@ -77,8 +78,22 @@ export function readTheme(value: unknown): VariantTheme {
   return {
     light: palette(given.light, FALLBACK_LIGHT),
     dark: palette(given.dark, FALLBACK_DARK),
-    headingFont: typeof given.headingFont === "string" ? given.headingFont : undefined,
-    bodyFont: typeof given.bodyFont === "string" ? given.bodyFont : undefined,
+    /*
+      One key, not two family names.
+
+      These two columns held a family name for a fortnight and reached nothing:
+      `next/font` builds a face from a literal call at compile time, so a name
+      arriving from a database row at request time cannot be fetched. The row
+      now stores a key into `lib/fonts.ts`, which is a pairing the build has
+      actually made — and an unknown key falls back to the default pair rather
+      than to a face that does not exist.
+
+      `headingFont` carries the key and `bodyFont` is kept in step with it, so
+      an older row that still holds a family name is read as the default
+      instead of being read as a font.
+    */
+    headingFont: isFontPairKey(given.headingFont) ? given.headingFont : undefined,
+    bodyFont: isFontPairKey(given.bodyFont) ? given.bodyFont : undefined,
     radius: given.radius && given.radius in RADIUS ? given.radius : "lg",
   };
 }
@@ -112,8 +127,18 @@ export function themeCss(theme: VariantTheme): string {
 
   const radius = RADIUS[theme.radius ?? "lg"];
 
+  /*
+    The typefaces, pointed at rather than named.
+
+    The root layout has already declared every family and given each one its own
+    variable. All this has to do is say which two of them this business is set
+    in — which is why a font change is a repaint and not a download.
+  */
+  const pair = fontPair(theme.headingFont);
+  const type = `--font-heading:var(${pair.headingVar});--font-body:var(${pair.bodyVar})`;
+
   return [
-    `:root{${vars(theme.light)};--radius:${radius};color-scheme:light}`,
+    `:root{${vars(theme.light)};--radius:${radius};${type};color-scheme:light}`,
     `:root[data-theme="dark"]{${vars(theme.dark)};color-scheme:dark}`,
     `@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){${vars(theme.dark)};color-scheme:dark}}`,
   ].join("");

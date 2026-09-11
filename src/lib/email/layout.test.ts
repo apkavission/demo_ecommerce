@@ -72,7 +72,7 @@ describe("renderDemoEmail", () => {
       brand: BRAND,
     });
 
-    expect(html).toContain("demonstration website built by Apka Vission");
+    expect(html).toContain("demonstration website built by Rahvian");
   });
 
   it("puts what somebody typed through the escaper", () => {

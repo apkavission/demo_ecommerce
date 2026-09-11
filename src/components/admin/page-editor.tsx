@@ -13,7 +13,8 @@ import {
   savePage,
   saveSection,
 } from "@/lib/actions/pages";
-import { RESERVED_SLUGS, type AdminPageRow } from "@/lib/pages";
+import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
+import type { AdminPageRow } from "@/lib/pages";
 import { idleState } from "@/lib/form-state";
 import { useBusyWhile } from "@/components/forms/use-busy-while";
 import { cn } from "@/lib/utils";

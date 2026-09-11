@@ -4,7 +4,7 @@ Three online shops in one application: **Kora Label** (clothing), **Voltway**
 (electronics) and **Daily Basket** (grocery). One codebase, three complete
 businesses — separate names, colours, stock, delivery charges and phone numbers.
 
-Built by Apka Saathi Private Limited as a sales demonstration. Every product,
+Built by Rahvian Technologies Private Limited as a sales demonstration. Every product,
 price and person in it is invented, nothing ordered is dispatched, and no payment
 is ever taken.
 

@@ -153,16 +153,16 @@ export default async function Expired() {
             <p className="text-sm text-muted">Ask us for a fresh link</p>
 
             <a
-              href="mailto:hello@apkavission.com"
+              href="mailto:hello@rahvian.com"
               className="mt-3 inline-flex items-center justify-center rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-accent-fg transition hover:opacity-90"
             >
-              hello@apkavission.com
+              hello@rahvian.com
             </a>
           </div>
         </div>
 
         <p className="mt-8 text-center text-xs text-muted">
-          Apka Saathi Private Limited
+          Rahvian Technologies Private Limited
         </p>
       </div>
     </main>

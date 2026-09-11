@@ -1,6 +1,45 @@
 @import "tailwindcss";
 
 /**
+ * `dark:` made to mean what this site means by dark.
+ *
+ * ---------------------------------------------------------------------------
+ * **This was a live bug, and it was in the one place that had been documented
+ * as safe.** Tailwind's own `dark:` is `prefers-color-scheme` and nothing else.
+ * These sites decide light or dark a second way as well — `data-theme` on the
+ * root, written by the header's toggle and re-applied before first paint — and
+ * the two had no connection at all.
+ *
+ * So every `dark:` class was answering a different question from every CSS
+ * variable beside it. On a machine set to light, a visitor who pressed the
+ * toggle got the dark palette *and* the light logo: `site-logo.tsx` swaps the
+ * two files with `dark:hidden` / `dark:block`, and its own comment says a theme
+ * toggle "cannot show the wrong one". It could, and it did — a light-ink mark
+ * on a near-black header, which is the failure both files exist to prevent.
+ * The sun and moon icons in the toggle were inverted by the same mechanism, so
+ * the control offered to switch to the mode it was already in.
+ *
+ * ---------------------------------------------------------------------------
+ * **Both halves, because both are real**, exactly as `themeCss()` writes the
+ * dark palette twice: an explicit choice wins in either direction, and
+ * somebody who has never touched the toggle still follows their machine. A
+ * single selector cannot express "the visitor asked for dark on a light
+ * machine", and a single media query cannot express "asked for light on a dark
+ * one".
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+/**
  * The demo's design system.
  *
  * ---------------------------------------------------------------------------
@@ -35,6 +74,19 @@
   --text: #0b1220;
   --muted: #334155;
   --radius: 0.875rem;
+
+  /*
+    The default pairing.
+
+    The root layout builds nine families and names none of them; a variant's
+    own `themeCss()` block points these two at the pair its row asked for. This
+    default is what the pages with no variant use — the panel's sign-in and the
+    expired-link screen — and it is the same pair `DEFAULT_FONT_PAIR` names in
+    `lib/fonts.ts`. Both places have to agree, and this comment is where that is
+    written down.
+  */
+  --font-heading: var(--font-sora);
+  --font-body: var(--font-inter);
 
   color-scheme: light;
 
@@ -198,8 +250,8 @@ body {
 
    Appended when the loader was brought across from the portal on 2026-08-31.
    Every project in the estate shows the same wait — the mark resolves in the
-   centre while the two halves of the name close in on it, "Apka" from the
-   left and "Vission" from the right — so a wait is recognisably ours rather
+   centre while the two halves of the name close in on it, "Rahvian" from the
+   left and "Technologies" from the right — so a wait is recognisably ours rather
    than a borrowed spinner.
 
    This demo had none of it: no loader component, no keyframes, and not one

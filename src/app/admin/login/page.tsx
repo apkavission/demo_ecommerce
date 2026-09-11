@@ -29,7 +29,7 @@ export default function AdminLogin() {
           Store demo — panel
         </h1>
         <p className="mt-2 text-sm text-muted">
-          Sign in with your Apka Vission account. The same one works across the
+          Sign in with your Rahvian account. The same one works across the
           estate.
         </p>
 

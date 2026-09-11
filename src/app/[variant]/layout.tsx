@@ -86,7 +86,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  *
  * **The demo banner is always there and says what this is.** A prospect looking
  * at Kora Label should never be in any doubt that they are looking at a
- * demonstration built by Apka Vission, with invented stock and invented prices.
+ * demonstration built by Rahvian, with invented stock and invented prices.
  * Removing that line to make the demo more convincing would be the wrong kind of
  * convincing — and on a shop, where somebody could try to place a real order, it
  * matters more than on the other five.
@@ -120,7 +120,7 @@ export default async function VariantLayout({ children, params }: Props) {
           <div className="container-page flex flex-wrap items-center justify-between gap-3 py-2 text-xs">
             <p className="text-muted">
               <span className="font-semibold text-text">Demonstration shop.</span>{" "}
-              Built by Apka Vission. Every product, price and person here is
+              Built by Rahvian. Every product, price and person here is
               invented, and no order placed is ever dispatched.
             </p>
 
@@ -230,7 +230,7 @@ export default async function VariantLayout({ children, params }: Props) {
 
           <div className="border-t border-border">
             <p className="container-page py-5 text-xs text-muted">
-              A demonstration built by Apka Saathi Private Limited. Not a real
+              A demonstration built by Rahvian Technologies Private Limited. Not a real
               shop — nothing ordered here is ever dispatched, and no payment is
               ever taken.
             </p>

@@ -59,8 +59,18 @@ describe("readTheme", () => {
     expect(readTheme({ radius: "enormous" }).radius).toBe("lg");
   });
 
-  it("carries fonts through only when they are strings", () => {
-    expect(readTheme({ headingFont: "Fraunces" }).headingFont).toBe("Fraunces");
+  /*
+    These two columns used to accept any string and reach nothing at all — a
+    row could say `Fraunces`, save, and render in Sora, because `next/font`
+    builds a face at compile time and cannot fetch one named at request time.
+    They now hold a key into `lib/fonts.ts`, so what they accept is exactly
+    what the build can draw.
+  */
+  it("accepts a pairing this build has made, and nothing else", () => {
+    expect(readTheme({ headingFont: "fraunces-inter" }).headingFont).toBe("fraunces-inter");
+
+    /* A family name, which is what the column held before, is not a pairing. */
+    expect(readTheme({ headingFont: "Fraunces" }).headingFont).toBeUndefined();
     expect(readTheme({ headingFont: 12 }).headingFont).toBeUndefined();
   });
 });
@@ -98,5 +108,19 @@ describe("themeCss", () => {
 
   it("resolves the radius to a length", () => {
     expect(themeCss(readTheme({ radius: "sm" }))).toContain("--radius:0.375rem");
+  });
+
+  it("points the type at the pairing the row asked for", () => {
+    expect(themeCss(readTheme({ headingFont: "dm-serif-dm-sans" }))).toContain(
+      "--font-heading:var(--font-dm-serif)",
+    );
+    expect(themeCss(readTheme({ headingFont: "dm-serif-dm-sans" }))).toContain(
+      "--font-body:var(--font-dm-sans)",
+    );
+  });
+
+  it("falls back to the default pairing rather than to no font at all", () => {
+    /* An empty theme still has to produce a page that is set in something. */
+    expect(themeCss(readTheme(null))).toContain("--font-heading:var(--font-sora)");
   });
 });

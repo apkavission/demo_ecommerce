@@ -112,7 +112,7 @@ export async function acknowledgeOrder(input: OrderAcknowledgement): Promise<voi
       "",
       variant.business_name,
       "",
-      "This is a demonstration website built by Apka Vission.",
+      "This is a demonstration website built by Rahvian.",
     ].join("\n");
 
     await sendMail({
