@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Mail, MapPin, Phone, ShoppingBag } from "lucide-react";
 import { SiteNav, ThemeToggle, VariantSwitcher } from "@/components/site/chrome";
+import { ScrollProgress } from "@/components/site/motion";
 import { themeCss } from "@/lib/theme";
 import { getNav, getVariant, listVariants } from "@/lib/variants";
 import { cartCount } from "@/lib/cart";
@@ -114,7 +115,119 @@ export default async function VariantLayout({ children, params }: Props) {
     <>
       <style dangerouslySetInnerHTML={{ __html: themeCss(variant.theme) }} />
 
-      <div className="flex min-h-dvh flex-col">
+      {/*
+        The reveal, triggered by scrolling rather than driven by it.
+
+        **Why a script and not CSS.** `animation-timeline: view()` ties an
+        animation's *progress* to the scroll position, which gives two failures
+        and no way to have neither: a short range finishes while the band is
+        still arriving, so the movement is over before the reader gets there,
+        and a long range leaves a band that is half in view drawn at half its
+        opacity, so a page nobody has scrolled looks half-painted. What is
+        wanted is a trigger: the band appears, and then a movement plays at its
+        own speed.
+
+        **Why inline rather than a component.** It has to add `js-reveal`
+        before the first paint. A client component hydrates after it, so every
+        band would be drawn, then hidden, then revealed — a flicker on load.
+
+        ------------------------------------------------------------------
+        **It warns in development, and moving it does not help.** Under a
+        processor throttled six times, React reports on every inner route: *"a
+        tree hydrated but some attributes of the server rendered HTML didn't
+        match the client properties"*, naming `data-revealed`. The observer sets
+        it before React has adopted those elements.
+
+        The obvious fix was tried and reverted: an effect in a client component
+        cannot win this either. The layout hydrates before the page segment
+        under it, so its effect still runs first and the warning is identical —
+        and waiting for `window.load` does not help, because on a slow machine
+        hydration is still going when `load` fires. What the move *did* cost was
+        the animation itself: started that late, the four-second failsafe wins
+        on a slow machine and the page simply appears with no entrance at all,
+        which is the machine the entrance was worth having on.
+
+        Making it genuinely React's to write means turning fifty-three bands
+        across six demos into client components and shipping React for every
+        card on every page — a large, real cost against a warning that a
+        production build does not print, on a mechanism the production build
+        passes 53 of 53 motion checks on. So it stays here, and this paragraph
+        exists so nobody spends the afternoon on it twice.
+
+        ------------------------------------------------------------------
+        **Three things it refuses to do.** It does nothing when reduced motion
+        is asked for, so the class is never added and every band is simply
+        visible. It removes the class if it finds no bands. And it gives up
+        after four seconds — because an observer that never fires must not be
+        able to leave a page blank, which is the one failure this mechanism has
+        to be safe against.
+      */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){
+try{
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  var root = document.documentElement;
+  root.classList.add("js-reveal");
+
+  var giveUp = setTimeout(function(){ root.classList.remove("js-reveal"); }, 4000);
+
+  var start = function(){
+    var bands = document.querySelectorAll("[data-reveal]");
+    if (!bands.length) { clearTimeout(giveUp); root.classList.remove("js-reveal"); return; }
+
+    var seen = new IntersectionObserver(function(entries, self){
+      clearTimeout(giveUp);
+      entries.forEach(function(entry){
+        if (!entry.isIntersecting) return;
+        entry.target.setAttribute("data-revealed", "");
+        self.unobserve(entry.target);
+      });
+    }, {
+      /*
+        Two per cent, not eight.
+
+        The margin exists so a band reveals once it is properly in view rather
+        than the instant its top edge appears. At eight per cent of a 1000px
+        screen it held back anything with less than eighty pixels showing — and
+        eighty pixels is exactly what the motion check calls "a reader can see
+        this". The two disagreed, and on the school's fee page that meant a card
+        a reader could read was sitting at opacity 0 while the check, correctly,
+        called it invisible. Two per cent keeps the intent and closes the gap.
+      */
+      rootMargin: "0px 0px -2% 0px",
+      threshold: 0.06,
+    });
+
+    bands.forEach(function(band){ seen.observe(band); });
+  };
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
+}catch(e){ document.documentElement.classList.remove("js-reveal"); }
+})();`,
+        }}
+      />
+
+      {/*
+        The ground, under everything, drawn once.
+
+        Two elements rather than one: the aura carries the pools of accent and
+        the ruled grid, the grain sits over it unmasked. Both are `fixed`, so
+        neither can widen the document — which is what the six-width
+        sideways-scroll suite measures.
+      */}
+      <div className="aura" aria-hidden />
+      <div className="grain" aria-hidden />
+
+      {/* How far down the page the reader has got. Decorative, and absent for
+          anybody who asked for stillness. */}
+      <ScrollProgress />
+
+      {/* `relative` and above the aura, or the ground would paint over the
+          page rather than under it. */}
+      <div className="relative z-10 flex min-h-dvh flex-col">
         {/* ------------------------------------------------------------- */}
         <div className="border-b border-border bg-accent-soft">
           <div className="container-page flex flex-wrap items-center justify-between gap-3 py-2 text-xs">
@@ -136,7 +249,15 @@ export default async function VariantLayout({ children, params }: Props) {
         </div>
 
         {/* ------------------------------------------------------------- */}
-        <header className="relative border-b border-border bg-surface">
+        {/*
+          Pinned, and translucent over whatever scrolls under it.
+
+          The booking button and the telephone live in this bar, and somebody
+          decides to use them two screens down. A header that has scrolled away
+          by then costs the enquiry. The blur has a solid fallback in the same
+          rule: a translucent bar without it is body text sliding under a header.
+        */}
+        <header className="site-header sticky top-0 z-50 border-b border-border">
           <div className="container-page flex h-16 items-center gap-4">
             <Link href={base} className="tracking-tight">
               <SiteLogo variant={variant} />
@@ -186,7 +307,7 @@ export default async function VariantLayout({ children, params }: Props) {
         <main className="flex-1">{children}</main>
 
         {/* ------------------------------------------------------------- */}
-        <footer className="mt-20 border-t border-border bg-surface">
+        <footer className="mt-10 border-t border-border bg-surface">
           <div className="container-page grid gap-10 py-14 md:grid-cols-3">
             <div>
               <p className="font-display text-lg font-semibold">{variant.businessName}</p>

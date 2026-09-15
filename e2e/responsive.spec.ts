@@ -63,8 +63,18 @@ for (const width of WIDTHS) {
     for (const path of PAGES) {
       test(`/${path}`, async ({ page }) => {
         /* The slug comes from wherever the saved state landed, so this follows
-           the demo rather than restating its business names. */
+           the demo rather than restating its business names.
+
+           **Waited for, not read straight after the `goto`.** The bare address
+           answers 200 and sends the browser on to the business it opens, and
+           under a streaming render that second step happens after the
+           navigation has settled. Reading `page.url()` immediately gives "/",
+           so the slug came out empty and every page under it was requested as
+           `//shop` — which a browser reads as the host `shop`, and the
+           failure says `net::ERR_ABORTED at http://shop/` rather than
+           anything about this demo. */
         await page.goto("/");
+        await page.waitForURL(/\/[a-z0-9-]+$/);
         const slug = new URL(page.url()).pathname.split("/")[1];
 
         await openPage(page, slug, path);

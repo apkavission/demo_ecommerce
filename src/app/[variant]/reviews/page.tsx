@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Quote, Star } from "lucide-react";
 import { getTestimonials, getVariant } from "@/lib/variants";
+import { PageBand } from "@/components/site/ui";
 
 type Props = { params: Promise<{ variant: string }> };
 
@@ -28,19 +29,25 @@ export default async function ReviewsPage({ params }: Props) {
   const variant = await getVariant(slug);
   if (!variant) notFound();
 
+  /* This page's own title and opening line, from the business. */
+  const page = variant.copy.pages.reviews;
+
   const testimonials = await getTestimonials(variant.id);
 
   return (
-    <div className="container-page py-14 md:py-20">
-      <header className="max-w-2xl">
-        <h1 className="font-display text-4xl font-semibold tracking-tight">
-          What people said
-        </h1>
-        <p className="mt-4 text-lg leading-relaxed text-muted">
-          Written as examples for this demonstration. On a live site these would
-          be reviews collected from real customers, with their permission.
-        </p>
-      </header>
+    <>
+      <PageBand
+        eyebrow={variant.industryLabel}
+        heading={page.heading}
+        intro={page.intro}
+        facts={
+          testimonials.length > 0
+            ? [{ label: "Examples here", value: String(testimonials.length) }]
+            : undefined
+        }
+      />
+
+      <div className="container-page py-14 md:py-20">
 
       {testimonials.length === 0 ? (
         <p className="mt-12 rounded-[var(--radius-card)] border border-dashed border-border p-10 text-center text-muted">
@@ -83,6 +90,7 @@ export default async function ReviewsPage({ params }: Props) {
           ))}
         </ul>
       )}
-    </div>
+      </div>
+    </>
   );
 }

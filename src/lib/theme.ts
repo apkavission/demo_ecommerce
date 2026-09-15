@@ -123,6 +123,23 @@ export function themeCss(theme: VariantTheme): string {
       `--surface:${p.surface}`,
       `--text:${p.text}`,
       `--muted:${p.muted}`,
+
+      /*
+        The same two colours again, under names nothing shadows.
+
+        A band with a banner behind it replaces `--text` and `--muted` with
+        light values, because the words there sit on a photograph. That worked
+        and then leaked: the white card inside the first screen inherited them
+        and printed near-white text on near-white paper — the price of a first
+        visit, unreadable, in the one place a prospect looks first.
+
+        A component that is on a light surface inside a dark band needs a way
+        to ask for the ink again, and it cannot ask for `--text` because that
+        is the thing that was replaced. So the palette is also published as
+        `--ink`, which no band overrides.
+      */
+      `--ink:${p.text}`,
+      `--ink-muted:${p.muted}`,
     ].join(";");
 
   const radius = RADIUS[theme.radius ?? "lg"];

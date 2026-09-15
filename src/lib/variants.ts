@@ -2,7 +2,9 @@ import "server-only";
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { readCopy } from "@/lib/copy";
 import { readTheme } from "@/lib/theme";
+import type { HomeCopy } from "@/lib/copy";
 import type {
   CollectionRow,
   FaqRow,
@@ -76,6 +78,29 @@ export interface Variant {
 
   metaTitle: string | null;
   metaDescription: string | null;
+
+  /**
+   * The banner behind the first screen, if this business has one.
+   *
+   * Both may be absent, and that is an ordinary state rather than a missing
+   * asset: the band falls back to a wash built from the palette, so a demo with
+   * no pictures still has a hero. `video` wins when both are set — a still is
+   * then the poster it shows before it plays and on a connection that will not
+   * carry it.
+   */
+  hero: {
+    image: string | null;
+    imageAlt: string;
+    video: string | null;
+  };
+
+  /**
+   * The words on the site, which used to be in the code.
+   *
+   * Read through `readCopy()`, so every slot has a default and an empty column
+   * renders a finished page rather than a blank one.
+   */
+  copy: HomeCopy;
 }
 
 /**
@@ -87,6 +112,19 @@ const BUCKET_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/pu
 
 function fileUrl(key: string | null | undefined): string | null {
   return key ? `${BUCKET_URL}/${key}` : null;
+}
+
+/**
+ * The hero's video, trimmed, or nothing at all.
+ *
+ * A blank field is treated as absent so a value somebody cleared does not
+ * render a `<video>` with an empty source. The column is asked for as optional
+ * because the generated types have not been refreshed since the migration —
+ * which is a reason to be careful here, not a reason to assert it is there.
+ */
+function videoUrl(row: VariantRow): string | null {
+  const url = (row as { hero_video_url?: string | null }).hero_video_url;
+  return typeof url === "string" && url.trim() ? url.trim() : null;
 }
 
 function shape(row: VariantRow): Variant {
@@ -116,6 +154,24 @@ function shape(row: VariantRow): Variant {
     logoShowsName: Boolean(row.logo_shows_name),
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+
+    /*
+      Cast, because these columns were added to the table after these types were
+      generated and `npm run gen:types` has not been run since. The reader below
+      accepts `unknown` and checks everything it uses, so the cast asserts only
+      that the column exists — which the migration guarantees.
+    */
+    copy: readCopy((row as { copy?: unknown }).copy),
+
+    hero: {
+      image: fileUrl(
+        (row as { hero?: { storage_key: string } | null }).hero?.storage_key,
+      ),
+      imageAlt:
+        (row as { hero?: { alt: string } | null }).hero?.alt ||
+        `${row.business_name}`,
+      video: videoUrl(row),
+    },
   };
 }
 
@@ -125,7 +181,7 @@ export const listVariants = cache(async (): Promise<Variant[]> => {
 
   const { data, error } = await supabase
     .from("variants")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key), hero:media!variants_hero_image_id_fkey(storage_key, alt)`)
     .eq("is_active", true)
     .order("sort_order");
 
@@ -142,7 +198,7 @@ export const getVariant = cache(async (slug: string): Promise<Variant | null> =>
 
   const { data, error } = await supabase
     .from("variants")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key), hero:media!variants_hero_image_id_fkey(storage_key, alt)`)
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
@@ -160,7 +216,7 @@ export const getDefaultVariant = cache(async (): Promise<Variant | null> => {
 
   const { data } = await supabase
     .from("variants")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key), hero:media!variants_hero_image_id_fkey(storage_key, alt)`)
     .eq("is_active", true)
     .eq("is_default", true)
     .maybeSingle();
@@ -176,13 +232,30 @@ export const getDefaultVariant = cache(async (): Promise<Variant | null> => {
 /* -------------------------------------------------------------------------- */
 /* The content of one shop                                                     */
 /* -------------------------------------------------------------------------- */
+/*
+  These select `*` and nothing else, and that is worth a note because for a
+  week they did not.
+
+  When the logo columns were added to `variants` on 2026-09-03, the three named
+  joins that read them — `light:media!variants_logo_light_id_fkey` and its two
+  siblings — were pasted onto every `.select()` in this file. Those foreign keys
+  exist on `variants` alone, so PostgREST answered every one of these queries
+  with
+
+      Could not find a relationship between '<table>' and 'media'
+
+  and each function fell back to its empty array. The result was a site with no
+  content on it — rendering its empty states while the rows sat in the database.
+  It was found by photographing the pages, which is the one thing no test does.
+*/
+
 
 export const getNav = cache(async (variantId: string): Promise<NavItemRow[]> => {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("nav_items")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select("*")
     .eq("variant_id", variantId)
     .eq("is_active", true)
     .order("sort_order");
@@ -196,7 +269,7 @@ export const getCollections = cache(async (variantId: string): Promise<Collectio
 
   const { data, error } = await supabase
     .from("collections")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select("*")
     .eq("variant_id", variantId)
     .order("sort_order");
 
@@ -218,7 +291,7 @@ export const getProducts = cache(async (variantId: string): Promise<ProductRow[]
 
   const { data, error } = await supabase
     .from("products")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select("*")
     .eq("variant_id", variantId)
     .order("sort_order");
 
@@ -232,7 +305,7 @@ export const getProduct = cache(
 
     const { data, error } = await supabase
       .from("products")
-      .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+      .select("*")
       .eq("variant_id", variantId)
       .eq("slug", slug)
       .maybeSingle();
@@ -247,7 +320,7 @@ export const getOptions = cache(async (productId: string): Promise<ProductOption
 
   const { data, error } = await supabase
     .from("product_options")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select("*")
     .eq("product_id", productId)
     .order("sort_order");
 
@@ -272,7 +345,7 @@ export const getOptionsFor = cache(
 
     const { data, error } = await supabase
       .from("product_options")
-      .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+      .select("*")
       .in("product_id", productIds)
       .order("sort_order");
 
@@ -296,7 +369,7 @@ export const getPeople = cache(async (variantId: string): Promise<PersonRow[]> =
 
   const { data, error } = await supabase
     .from("team")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select("*")
     .eq("variant_id", variantId)
     .order("sort_order");
 
@@ -309,7 +382,7 @@ export const getTestimonials = cache(async (variantId: string): Promise<Testimon
 
   const { data, error } = await supabase
     .from("testimonials")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select("*")
     .eq("variant_id", variantId)
     .order("sort_order");
 
@@ -322,7 +395,7 @@ export const getFaqs = cache(async (variantId: string): Promise<FaqRow[]> => {
 
   const { data, error } = await supabase
     .from("faqs")
-    .select(`*, light:media!variants_logo_light_id_fkey(storage_key), dark:media!variants_logo_dark_id_fkey(storage_key), og:media!variants_og_image_id_fkey(storage_key)`)
+    .select("*")
     .eq("variant_id", variantId)
     .order("sort_order");
 

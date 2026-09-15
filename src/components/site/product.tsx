@@ -52,28 +52,49 @@ export function ProductCard({
   base,
   symbol,
   optionCount,
+  index = 0,
 }: {
   product: ProductRow;
   base: string;
   symbol: string;
   optionCount: number;
+  /** Its place in the row, for the stagger on the reveal. */
+  index?: number;
 }) {
   const off = discountPercent(product.price_paise, product.compare_at_paise);
   const soldOut = product.stock !== null && product.stock <= 0;
 
   return (
     <li
+      data-reveal="lift"
+      /*
+        Dimmed on purpose, and it says so.
+
+        A sold-out card is drawn at seventy per cent — which is a design state,
+        not a reveal that failed. `check:motion` reads opacity to find bands
+        that never arrived, so without this attribute it reports a working
+        shelf as a broken one. Saying it in the markup is better than teaching
+        the check about clothes.
+      */
+      data-dimmed={soldOut ? "" : undefined}
+      style={{ "--i": index % 3 } as React.CSSProperties}
       className={cn(
-        "group relative flex flex-col rounded-[var(--radius-card)] border border-border bg-surface p-5 transition-shadow",
-        soldOut ? "opacity-70" : "hover:shadow-md",
+        "tile spot underline-grow group relative flex flex-col p-5",
+        soldOut && "opacity-70",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="font-display text-base font-semibold leading-snug">
-          <Link href={`${base}/shop/${product.slug}`} className="after:absolute after:inset-0">
-            {product.name}
-          </Link>
-        </h3>
+      {/*
+        The price first, and large.
+
+        It was under the name at the size of body copy, which is the order a
+        brochure uses. A shop is read the other way round: the price decides
+        whether the name is read at all, and a column of prices has to be
+        comparable down the left edge.
+      */}
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-display price text-2xl font-semibold text-accent">
+          {formatMoney(product.price_paise, symbol)}
+        </span>
 
         {off !== null && !soldOut && (
           <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
@@ -82,22 +103,23 @@ export function ProductCard({
         )}
       </div>
 
-      {product.summary && (
-        <p className="mt-2 line-clamp-2 text-sm text-muted">{product.summary}</p>
+      {product.compare_at_paise !== null && (
+        <span className="mt-1 text-sm text-muted line-through">
+          {formatMoney(product.compare_at_paise, symbol)}
+        </span>
       )}
 
-      <div className="mt-4 flex flex-wrap items-baseline gap-2">
-        <span className="font-display text-lg font-semibold">
-          {formatMoney(product.price_paise, symbol)}
-        </span>
-        {product.compare_at_paise !== null && (
-          <span className="text-sm text-muted line-through">
-            {formatMoney(product.compare_at_paise, symbol)}
-          </span>
-        )}
-      </div>
+      <h3 className="font-display mt-3 text-base font-semibold leading-snug">
+        <Link href={`${base}/shop/${product.slug}`} className="after:absolute after:inset-0">
+          {product.name}
+        </Link>
+      </h3>
 
-      <p className="mt-3 text-xs text-muted">
+      {product.summary && (
+        <p className="mt-2 line-clamp-2 flex-1 text-sm text-muted">{product.summary}</p>
+      )}
+
+      <p className="mt-5 border-t border-border pt-4 text-xs text-muted">
         {soldOut ? (
           <span className="font-medium text-red-600 dark:text-red-400">Sold out</span>
         ) : (

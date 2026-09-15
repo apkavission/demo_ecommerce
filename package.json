@@ -11,7 +11,11 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "gen:types": "node scripts/gen-types.mjs",
-    "check:website": "node scripts/check-website.mjs"
+    "check:website": "node scripts/check-website.mjs",
+    "check:copy": "node scripts/check-copy.mjs",
+    "check:motion": "node scripts/check-motion.mjs",
+    "check:hero": "node scripts/check-hero.mjs",
+    "make:hero": "node scripts/make-hero.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

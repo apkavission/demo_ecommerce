@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPeople, getVariant } from "@/lib/variants";
+import { PageBand } from "@/components/site/ui";
 
 export const metadata: Metadata = { title: "Who we are" };
 
@@ -20,22 +21,25 @@ export default async function PeoplePage({ params }: Props) {
   const variant = await getVariant(slug);
   if (!variant) notFound();
 
+  /* This page's own title and opening line, from the business. */
+  const page = variant.copy.pages.people;
+
   const people = (await getPeople(variant.id)).filter(
     (person) => person.status === "published",
   );
 
   return (
-    <div className="container-page py-14">
-      <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
-          Who we are
-        </h1>
-        <p className="measure mt-2 text-muted">
-          {variant.businessName} is {people.length}{" "}
-          {people.length === 1 ? "person" : "people"}. Every one of them is
-          invented, as is everything they are said to have done.
-        </p>
-      </header>
+    <>
+      <PageBand
+        eyebrow={variant.industryLabel}
+        heading={page.heading}
+        intro={`${variant.businessName} is ${people.length} ${
+          people.length === 1 ? "person" : "people"
+        }. Every one of them is invented, as is everything they are said to have done.`}
+        facts={people.length > 0 ? [{ label: "The team", value: String(people.length) }] : undefined}
+      />
+
+      <div className="container-page py-14">
 
       <ul className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {people.map((person) => (
@@ -63,6 +67,7 @@ export default async function PeoplePage({ params }: Props) {
           </li>
         ))}
       </ul>
-    </div>
+      </div>
+    </>
   );
 }

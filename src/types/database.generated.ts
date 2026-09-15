@@ -892,6 +892,9 @@ export type Database = {
           logo_shows_name: boolean;
           meta_title: string | null;
           meta_description: string | null;
+          copy: Json;
+          hero_image_id: string | null;
+          hero_video_url: string | null;
         };
         Insert: {
           id?: string;
@@ -921,6 +924,9 @@ export type Database = {
           logo_shows_name?: boolean;
           meta_title?: string | null;
           meta_description?: string | null;
+          copy?: Json;
+          hero_image_id?: string | null;
+          hero_video_url?: string | null;
         };
         Update: {
           id?: string;
@@ -950,6 +956,9 @@ export type Database = {
           logo_shows_name?: boolean;
           meta_title?: string | null;
           meta_description?: string | null;
+          copy?: Json;
+          hero_image_id?: string | null;
+          hero_video_url?: string | null;
         };
         Relationships: [];
       };

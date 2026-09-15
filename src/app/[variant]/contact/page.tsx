@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Mail, MapPin, Phone, Clock } from "lucide-react";
 import { ContactForm } from "@/components/site/forms";
+import { PageBand } from "@/components/site/ui";
 import { getVariant } from "@/lib/variants";
 
 export const metadata: Metadata = { title: "Contact" };
@@ -22,20 +23,20 @@ export default async function ContactPage({ params }: Props) {
   const variant = await getVariant(slug);
   if (!variant) notFound();
 
+  /* This page's own title and opening line, from the business. */
+  const page = variant.copy.pages.contact;
+
   const contact = variant.contact;
 
   return (
-    <div className="container-page py-14">
-      <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
-          Get in touch
-        </h1>
-        <p className="measure mt-2 text-muted">
-          Anything at all — an order, a size, whether something is coming back in
-          stock. A message here lands in {variant.businessName}&rsquo;s panel a
-          second later, which is the part worth watching.
-        </p>
-      </header>
+    <>
+      <PageBand
+        eyebrow={variant.industryLabel}
+        heading={page.heading}
+        intro={page.intro}
+      />
+
+      <div className="container-page py-14">
 
       <div className="mt-10 grid gap-12 lg:grid-cols-[20rem_1fr]">
         <aside className="space-y-5">
@@ -95,6 +96,7 @@ export default async function ContactPage({ params }: Props) {
           <ContactForm variant={variant.slug} />
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

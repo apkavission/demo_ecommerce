@@ -557,3 +557,1183 @@ body {
 .rule-accent.text-center::before {
   --rule-inline: auto;
 }
+/* ===========================================================================
+   Motion.
+
+   ---------------------------------------------------------------------------
+   **Two kinds, and they are not the same thing.** An *entrance* runs once when
+   the page arrives and is for the first screen, which is already in front of
+   somebody. A *reveal* runs as a section scrolls into view and is for
+   everything below the fold. Using an entrance for both is what produces a
+   page where the fourth band animated three seconds before you reached it.
+
+   ---------------------------------------------------------------------------
+   **No JavaScript, and no observer.** The reveals are scroll-driven CSS
+   animations — `animation-timeline: view()` — behind an `@supports`, so a
+   browser that has them gets the motion and one that does not gets the
+   content, visible, with nothing to wait for. An IntersectionObserver would
+   mean shipping a client component for every band and a flash of hidden
+   content before hydration.
+
+   ---------------------------------------------------------------------------
+   **Nothing here may leave content invisible.** Every animation runs *to* the
+   readable state with `both` fill, so if it never runs — reduced motion, an
+   old browser, a failed stylesheet — the element is simply there. A reveal
+   that starts at `opacity: 0` and depends on script to finish is how a page
+   ends up blank for the people most likely to be using assistive technology.
+
+   Somebody who has asked their system to stop moving things gets a still page:
+   the blanket rule further up sets every duration to a thousandth of a
+   millisecond, which lands each of these on its final frame, and the
+   scroll-driven block below is disabled outright.
+   ======================================================================== */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.875rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/**
+ * The first screen, arriving.
+ *
+ * Staggered by a custom property rather than by a nth-child chain, so the
+ * order is set where the markup is and a band can be reordered without
+ * chasing delays through a stylesheet.
+ *
+ * 90ms apart: close enough to read as one movement, far enough apart to read
+ * as a sequence. Below about 60ms it looks like a glitch; above about 150ms
+ * the last item feels late.
+ */
+.enter {
+  animation: rise-in 620ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  animation-delay: calc(var(--enter, 0) * 90ms);
+}
+
+
+/**
+ * A band, revealed when it is scrolled to.
+ *
+ * ---------------------------------------------------------------------------
+ * **This was `animation-timeline: view()` and it was the wrong mechanism.**
+ * A scroll-driven animation ties its *progress* to the scroll position, which
+ * gives two failures and no way to have neither:
+ *
+ *   - a short range finishes while the band is still arriving, so by the time
+ *     it is actually in front of the reader the movement is over. The owner
+ *     put it plainly: *"warna wo pahle hi ho jata h"*.
+ *   - a long range leaves a band that is half in view drawn at half its
+ *     opacity, so a page nobody has scrolled yet looks half-painted.
+ *
+ * What is wanted is not progress but a **trigger**: the band appears, and then
+ * a six-hundred-millisecond movement plays at its own speed. That is one
+ * `IntersectionObserver`, and the script that owns it is in
+ * `[variant]/layout.tsx`.
+ *
+ * ---------------------------------------------------------------------------
+ * **A transition, not an animation.** A transition cannot be left stuck
+ * mid-way: the element has one resting state and one revealed state, and any
+ * interruption lands on one of them. It also answers to the reduced-motion
+ * rule further up this file, which sets every duration to a thousandth of a
+ * millisecond — so somebody who asked for a still page gets the revealed state
+ * immediately rather than a movement nobody wanted.
+ *
+ * ---------------------------------------------------------------------------
+ * **Hidden only when the script is running.** The resting state is behind
+ * `html.js-reveal`, a class the observer's own script adds before first paint.
+ * If that script never runs — no JavaScript, a syntax error, a blocked
+ * bundle — the class is never added and every band is simply visible. A reveal
+ * that hides content and then depends on script to show it again is how a page
+ * ends up blank, and it fails worst for the people least able to work around
+ * it.
+ */
+html.js-reveal [data-reveal] {
+  opacity: 0;
+  transform: translateY(1.25rem);
+  transition:
+    opacity 620ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform 620ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+
+  /*
+    The stagger, on the element rather than on a parent.
+
+    A row of three cards each carrying its own `--i` arrives in order, and the
+    order survives the grid reflowing to one column on a phone — where a delay
+    computed from a column index would be wrong for every card but the first.
+  */
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+
+html.js-reveal [data-reveal][data-revealed] {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+  On paper, everything has arrived.
+
+  A printed page is captured without being scrolled, so every band below the
+  first screen would come out blank -- and the same is true of anything else
+  that renders a page without scrolling it: a PDF, a screenshot service, a
+  crawler that does not simulate a reader. The content is in the document
+  either way, which is what matters for a search engine, but a blank page out
+  of a printer is a real failure and this is one rule.
+*/
+@media print {
+  html.js-reveal [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/**
+ * The answer inside an accordion, on the way open.
+ *
+ * A fade rather than a height transition: `details` has no animatable height
+ * without `interpolate-size`, which only very new browsers have, and a
+ * half-supported height animation is a jump in the browsers that lack it.
+ * Fading the answer in is the part that reads as smooth anyway.
+ */
+details[open] > *:not(summary) {
+  animation: fade-in 260ms ease-out both;
+}
+
+/**
+ * An arrow that moves when the thing it belongs to is hovered.
+ *
+ * Two pixels. It exists because a button with an arrow that does not move
+ * looks like a picture of a button, and because it costs nothing on a touch
+ * screen where it never runs.
+ */
+@media (hover: hover) {
+  .group:hover .arrow,
+  a:hover > .arrow,
+  button:hover > .arrow {
+    transform: translateX(2px);
+  }
+}
+
+.arrow {
+  transition: transform 180ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+/**
+ * The pinned action bar, on phones.
+ *
+ * ---------------------------------------------------------------------------
+ * **It reserves the space it covers**, which is the part that is usually
+ * forgotten. A `position: fixed` bar is out of the document, so it sits on top
+ * of whatever the page ends with — in this case the footer's last line, the
+ * legal notice, which is the one line a demonstration site must not hide.
+ *
+ * The `::after` is a block of the same height in the normal flow, so the page
+ * simply ends higher. `100%` plus the safe-area inset, because on a phone with
+ * a home bar the bottom of the viewport is not the bottom of the screen.
+ *
+ * **`backdrop-filter` with a solid fallback.** The bar is translucent where
+ * that is supported and opaque where it is not; a bar that is translucent
+ * *without* the blur is unreadable over body text scrolling under it.
+ */
+.action-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  box-shadow: 0 -8px 24px -12px color-mix(in oklab, var(--text) 24%, transparent);
+}
+
+@supports (backdrop-filter: blur(8px)) {
+  .action-bar {
+    background: color-mix(in oklab, var(--surface) 86%, transparent);
+    backdrop-filter: blur(10px) saturate(1.4);
+  }
+}
+
+/* The space it takes up, given back to the page. */
+.action-bar::after {
+  content: "";
+  position: fixed;
+  visibility: hidden;
+}
+
+body:has(.action-bar) {
+  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0));
+}
+
+@media (min-width: 768px) {
+  body:has(.action-bar) {
+    padding-bottom: 0;
+  }
+}
+
+/* ===========================================================================
+   Edition 02 — the part a prospect remembers.
+
+   ---------------------------------------------------------------------------
+   **Why any of this exists.** The pages above were competent: a wash, white
+   cards, honest prices, correct spacing. Competent is not the brief. The owner
+   put it plainly — "itna simple and aacha nhi lag raha h, client hume kyu dega
+   project" — and a demo is not judged the way a live site is. A live site is
+   judged by whether somebody can book. A demo is judged in the first four
+   seconds, against every other agency's demo, by somebody deciding whether
+   these people can be trusted with their business.
+
+   ---------------------------------------------------------------------------
+   **And it is done without a single photograph**, because there are none and
+   buying stock would be the exact thing that makes a demo look like a template.
+   Everything below earns its presence from four materials:
+
+     - **light** — a slow, palette-derived aura behind the whole document
+     - **line** — hairlines: a drawn rule, a ruled grid, a numbered section
+     - **type** — one size past comfortable, tracked tighter to pay for it
+     - **time** — motion that arrives with the reader rather than before them
+
+   Every one of them follows the seven variables a variant supplies, so a demo
+   in another palette is a different-looking site rather than this one in a
+   different button colour.
+
+   ---------------------------------------------------------------------------
+   **Nothing here may hide content.** The rule this estate already learned is
+   kept exactly: an invisible resting state lives behind `html.js-reveal` and
+   nowhere else, every animation runs *to* the readable state with `both` fill,
+   and the reduced-motion block further up lands all of it on its final frame.
+   `check:motion` asks this of all seven routes.
+   ======================================================================== */
+
+/* -------------------------------------------------------------- the aura -- */
+
+/**
+ * The ground the whole site stands on.
+ *
+ * Three pools of the business's own accent, a hairline grid over them, and a
+ * grain so fine it reads as paper rather than as texture. Fixed, so it does not
+ * scroll with the page — which is what makes a long scroll feel like one room
+ * rather than a stack of bands — and `pointer-events: none`, so it can never
+ * take a click.
+ *
+ * Drawn once, in the layout, under everything. A `position: fixed` element
+ * cannot widen the document, so the six-width sideways-scroll suite is
+ * unaffected by it.
+ */
+.aura {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.aura::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+
+  background:
+    radial-gradient(
+      42rem 34rem at 16% 10%,
+      color-mix(in oklab, var(--accent) 26%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      36rem 28rem at 88% 2%,
+      color-mix(in oklab, var(--accent) 17%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      30rem 30rem at 70% 88%,
+      color-mix(in oklab, var(--accent) 10%, transparent),
+      transparent 64%
+    );
+
+  /*
+    Twenty-two seconds of almost nothing.
+
+    The movement is a few per cent of scale and one of translation, below the
+    threshold at which a reader notices it is moving — which is the point. A
+    background that visibly animates is a background somebody has to ignore; one
+    that drifts at this rate reads as depth. It stops dead for anybody who has
+    asked for a still page.
+  */
+  animation: aura-drift 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/**
+ * The ruled grid.
+ *
+ * Two repeating gradients at one pixel — the hairline a clinic's own paperwork
+ * is ruled with — masked to fade out down the page so it never competes with
+ * the text it sits behind.
+ */
+.aura::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--text) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--text) 6%, transparent) 1px, transparent 1px);
+  background-size: 4.5rem 4.5rem;
+
+  -webkit-mask-image: radial-gradient(120% 80% at 50% 0%, #000 10%, transparent 72%);
+  mask-image: radial-gradient(120% 80% at 50% 0%, #000 10%, transparent 72%);
+  opacity: 0.7;
+}
+
+@keyframes aura-drift {
+  from {
+    transform: translate3d(-1.5%, -1%, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(1.5%, 1.5%, 0) scale(1.06);
+  }
+}
+
+/**
+ * A grain, over the aura, at three and a half per cent.
+ *
+ * Its own element rather than a third pseudo on `.aura`, because that one is
+ * already carrying the grid and its mask — and a grain that fades out halfway
+ * down the page is visible as a seam. Inline SVG turbulence: three hundred
+ * bytes, no request, and it is what stops a large gradient reading as a large
+ * gradient on a good screen.
+ */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* -------------------------------------------------------------- surfaces -- */
+
+/**
+ * A panel that lets the aura through.
+ *
+ * Not glass for the sake of glass: at 82% the accent behind it tints the card
+ * by a percent or two, which is what makes a column of cards look like it
+ * belongs to this business rather than like white boxes placed on it. The
+ * fallback is the solid surface, because a translucent panel *without* the blur
+ * is a card with body text showing through it.
+ */
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  transition:
+    box-shadow 220ms ease,
+    transform 220ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color 220ms ease;
+}
+
+@supports (backdrop-filter: blur(6px)) {
+  .tile {
+    background: color-mix(in oklab, var(--surface) 82%, transparent);
+    backdrop-filter: blur(12px) saturate(1.25);
+  }
+}
+
+@media (hover: hover) {
+  .tile:hover {
+    box-shadow: var(--shadow-2);
+    border-color: color-mix(in oklab, var(--accent) 32%, var(--border));
+    transform: translateY(-3px);
+  }
+}
+
+/**
+ * The pointer, followed.
+ *
+ * A soft pool of the accent under the cursor, inside the card it is over.
+ * `--mx` and `--my` are written by `motion.tsx`; until something writes them
+ * the pool sits at the top centre and is invisible anyway, so a browser running
+ * no JavaScript never sees this at all. Behind `hover: hover` as well, because
+ * on a touch screen the pool would appear where the last tap was and stay
+ * there.
+ */
+.spot {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.spot::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  background: radial-gradient(
+    14rem 14rem at var(--mx, 50%) var(--my, 0%),
+    color-mix(in oklab, var(--accent) 16%, transparent),
+    transparent 70%
+  );
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .spot:hover::before {
+    opacity: 1;
+  }
+}
+
+/**
+ * The hairline that grows along the foot of a card when it is hovered.
+ *
+ * Two pixels of the accent, drawn from the left in 240ms. It is the smallest
+ * possible answer to "is this card interactive", and it costs nothing at all
+ * where there is no pointer.
+ */
+.underline-grow::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 240ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  background: linear-gradient(
+    to right,
+    var(--accent),
+    color-mix(in oklab, var(--accent) 20%, transparent)
+  );
+}
+
+@media (hover: hover) {
+  .underline-grow:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* ------------------------------------------------------------------ type -- */
+
+/**
+ * The headline, one size past comfortable.
+ *
+ * A demo's first screen is read from across a desk, on somebody else's laptop,
+ * for about four seconds. At `display-1` it reads as a good website; at this
+ * size, with the tracking pulled in to pay for it, it reads as a brand. The
+ * lower bound is what a 360px phone carries without breaking a word.
+ */
+.display-hero {
+  font-size: clamp(2.5rem, 1.1rem + 5.2vw, 5rem);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+/**
+ * The small label with a rule running out of it.
+ *
+ * Used for the section number and for every micro-heading on the site, so that
+ * "01 — TREATMENTS" and "OPENING HOURS" are visibly the same kind of thing.
+ */
+.micro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.micro::after {
+  content: "";
+  width: var(--micro-rule, 2.5rem);
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    color-mix(in oklab, var(--accent) 70%, transparent),
+    transparent
+  );
+}
+
+/** A section's number, set as a figure rather than as a word. */
+.index-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* --------------------------------------------------------------- buttons -- */
+
+/**
+ * One button, with the light passing over it.
+ *
+ * The sweep is a single translation of a narrow highlight, 620ms, on hover
+ * only. It is the one piece of pure decoration on the site, and it is here
+ * because the primary action is the element a prospect is most likely to point
+ * at and call expensive.
+ */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  padding: 0.875rem 1.6rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--accent-fg);
+  box-shadow: var(--shadow-1);
+  transition:
+    transform 180ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    box-shadow 180ms ease;
+}
+
+.btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  transform: skewX(-18deg);
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in oklab, #fff 38%, transparent),
+    transparent
+  );
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-2);
+  }
+
+  .btn:hover::after {
+    opacity: 1;
+    animation: btn-sweep 620ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+@keyframes btn-sweep {
+  from {
+    left: -60%;
+  }
+  to {
+    left: 120%;
+  }
+}
+
+/** The same shape, in outline, for the second action. */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  padding: 0.875rem 1.6rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: color-mix(in oklab, var(--surface) 70%, transparent);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+@media (hover: hover) {
+  .btn-ghost:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--accent) 45%, var(--border-strong));
+    background: var(--surface);
+  }
+}
+
+/* ---------------------------------------------------------------- motion -- */
+
+/**
+ * A line of type rising out of nothing.
+ *
+ * The clip is on the wrapper and the movement is on the child, which is the
+ * only arrangement that cuts the letters off as they arrive — a `translateY`
+ * with nothing clipping it is a line that slides, and a line that slides looks
+ * like a slide deck. The extra bottom padding is for descenders: without it the
+ * clip shaves the tail off a "y" for the whole animation.
+ *
+ * First screen only. Below the fold the same effect is asked for with
+ * `data-reveal="mask"`, so it waits for the reader instead of playing three
+ * screens above them.
+ */
+.mask-line,
+.mask-rise {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.mask-rise > * {
+  display: block;
+  animation: mask-rise 900ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  animation-delay: calc(var(--enter, 0) * 90ms);
+}
+
+@keyframes mask-rise {
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/**
+ * The reveal, in four kinds.
+ *
+ * `rise` is what every band did before and is still what an element with a bare
+ * `data-reveal` gets. The other three exist because one movement applied to a
+ * heading, a rule, a card and a numeral reads as a template applying a
+ * movement — which is precisely the impression this edition is built to avoid.
+ *
+ * All of them are declared the same way: a resting state behind
+ * `html.js-reveal`, a transition to the readable state, and nothing that can be
+ * left part-way.
+ */
+/*
+  The clip is on the element and the movement is on its child, and that is not
+  a stylistic preference — it is the only arrangement that works.
+
+  The first version of this clipped the observed element itself, with
+  `clip-path: inset(0 0 100% 0)`, and every section heading on the page stayed
+  hidden for ever. An `IntersectionObserver` computes its ratio from the
+  element's *visible* rectangle, and a target clipped to nothing has a visible
+  rectangle of nothing — so it never intersects, never reaches the threshold,
+  never gets `data-revealed`, and the rule that would have unclipped it never
+  applies. A reveal that hides its own trigger cannot fire.
+
+  So the wrapper is a plain `overflow: hidden` box — full size, always
+  intersecting — and what moves is the heading inside it.
+*/
+html.js-reveal [data-reveal="mask"] {
+  opacity: 1;
+  overflow: hidden;
+}
+
+html.js-reveal [data-reveal="mask"] > * {
+  transform: translateY(105%);
+  transition: transform 760ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+
+html.js-reveal [data-reveal="mask"][data-revealed] > * {
+  transform: none;
+}
+
+/* A rule, drawn from its left end. */
+html.js-reveal [data-reveal="draw"] {
+  opacity: 1;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 720ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+
+html.js-reveal [data-reveal="draw"][data-revealed] {
+  transform: none;
+}
+
+/* A card, arriving with a touch of scale as well as a lift. */
+html.js-reveal [data-reveal="lift"] {
+  opacity: 0;
+  transform: translateY(1.5rem) scale(0.985);
+  transition:
+    opacity 680ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform 680ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  transition-delay: calc(var(--i, 0) * 80ms);
+}
+
+html.js-reveal [data-reveal="lift"][data-revealed] {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+  On paper, and with no script, all four are simply there.
+
+  The print block further up covers the plain `[data-reveal]`; a `clip-path`
+  and a `scaleX(0)` are not opacity, so they have to be named again here or a
+  printed page comes out with its headings clipped to nothing.
+*/
+@media print {
+  html.js-reveal [data-reveal="mask"] > *,
+  html.js-reveal [data-reveal="draw"],
+  html.js-reveal [data-reveal="lift"] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/**
+ * How far the reader has got, as two pixels across the top.
+ *
+ * Fixed above the header and scaled by the fraction scrolled. It is the
+ * cheapest possible signal that a page is long enough to be worth scrolling,
+ * which is the one thing a first screen cannot say about itself.
+ */
+.progress {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 60;
+  height: 2px;
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left;
+  background: linear-gradient(
+    to right,
+    var(--accent),
+    color-mix(in oklab, var(--accent) 40%, transparent)
+  );
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------- furniture -- */
+
+/**
+ * The band at the top of an inner page.
+ *
+ * **Shorter than the home page's, deliberately.** Somebody who clicked
+ * "Services" has already decided what they want to look at, and a full-height
+ * band on every page is a site that makes them scroll past the same thing six
+ * times. The hairline at its foot is the one the hero uses, so the pages read
+ * as one site rather than as six.
+ */
+.page-band {
+  position: relative;
+  isolation: isolate;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--accent) 7%, transparent),
+    transparent 78%
+  );
+}
+
+.page-band::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in oklab, var(--accent) 45%, transparent),
+    transparent
+  );
+}
+
+/**
+ * The week a person is in, as seven marks.
+ *
+ * Every clinic site lists its doctors; almost none says which afternoons each
+ * one sits, so people ring to find out and are told to ring back. Seven
+ * initials with the working days filled answers it in the width of a card and
+ * without a table — and it is the detail a prospect points at.
+ */
+.week-dot {
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.week-dot[data-in="yes"] {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+/**
+ * The quotation mark behind a review.
+ *
+ * Seven rems of the accent at eighteen per cent, tucked into the corner. It
+ * does the job a photograph of a smiling patient would do — it fills the top of
+ * the card with something unmistakably this business's colour — without
+ * pretending to be evidence of anything.
+ */
+.quote-glyph {
+  position: absolute;
+  top: -0.5rem;
+  left: 0.75rem;
+  z-index: -1;
+  font-size: 6rem;
+  line-height: 1;
+  font-weight: 700;
+  color: color-mix(in oklab, var(--accent) 18%, transparent);
+  pointer-events: none;
+  user-select: none;
+}
+
+/**
+ * A number that is meant to be read as a number.
+ *
+ * Tabular figures, because a counter that is animating changes width on every
+ * frame otherwise and the line beside it jitters — which is the one way an
+ * animated statistic looks cheap rather than expensive.
+ */
+.figure {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/**
+ * The header, pinned and translucent.
+ *
+ * Written here rather than as utilities for the same reason `.action-bar` is:
+ * the translucency and its fallback are one decision in two rules, and a bar
+ * that is see-through *without* the blur is body text sliding under a header —
+ * which is worse than an opaque one and is what a `backdrop-filter` utility
+ * gives on a browser that lacks it.
+ */
+.site-header {
+  background: var(--surface);
+}
+
+@supports (backdrop-filter: blur(8px)) {
+  .site-header {
+    background: color-mix(in oklab, var(--surface) 80%, transparent);
+    backdrop-filter: blur(14px) saturate(1.3);
+  }
+}
+
+/**
+ * A band that is nothing but the ground showing through.
+ *
+ * The alternating rhythm used to be white, tinted, white. With an aura behind
+ * the document, the most valuable band is the one with no background at all —
+ * the pools of accent and the ruled grid *are* the band, and the cards on it
+ * float over the business's own colour. `bg-surface` still exists for the bands
+ * that need to be solid; this is the one that lets the ground through.
+ */
+.band-open {
+  background: transparent;
+}
+
+/**
+ * The section's number, as a watermark down the side.
+ *
+ * On a wide screen only, and `aria-hidden`: it is the same figure the section
+ * heading already prints, set large and faint in the margin the way a document
+ * numbers a chapter. It is the detail that makes a scroll read as a set of
+ * chapters rather than a stack of cards, and it disappears entirely below
+ * 1280px where there is no margin to put it in.
+ */
+.chapter-mark {
+  display: none;
+}
+
+/*
+  In the margin, not behind the words.
+
+  It was first set behind the heading at eleven per cent, which is exactly where
+  a watermark stops being a watermark: at that size it sat across the eyebrow
+  and the first line of the heading and read as a rendering fault rather than as
+  a chapter number. A document puts the figure in the margin, and the margin is
+  the one piece of space this layout has going spare — 76rem of container inside
+  a viewport of at least 80rem.
+*/
+@media (min-width: 1280px) {
+  .chapter-mark {
+    position: absolute;
+    top: -1.25rem;
+    left: -6.5rem;
+    display: block;
+    font-size: 4.5rem;
+    line-height: 1;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    color: color-mix(in oklab, var(--accent) 18%, transparent);
+    pointer-events: none;
+    user-select: none;
+  }
+}
+
+/**
+ * The price, set as a figure rather than as a label.
+ *
+ * A treatment's price is the single most-read word on a clinic's website and it
+ * was set at the size of body copy in a coloured pill. Here it is display type
+ * at the head of the card, with the name under it — so a column of six cards
+ * can be read down the prices alone, which is exactly how somebody reads it.
+ */
+.price {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/**
+ * The step number beside a form.
+ *
+ * A circle with a figure in it, in the accent, at the size of a chip. Used on
+ * the booking and contact pages for "what happens after you press this", which
+ * is the question that stops people pressing it.
+ */
+.step-num {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ===========================================================================
+   The banner hero.
+
+   ---------------------------------------------------------------------------
+   **Two treatments, not one.** With a banner or a video behind it, the words
+   are light and sit on a scrim. With neither -- which is every business in
+   this estate today -- the band is the wash above and the words are the
+   palette's own ink, which `theme-presets.test.ts` has already measured
+   against its own background.
+
+   Light type on a pale wash is the failure this avoids, and it is the reason
+   these are separate rules rather than one with an opacity in it.
+   ======================================================================== */
+
+.hero-media {
+  /*
+    An explicit colour under the picture, not the page colour.
+
+    While the banner is arriving -- and for ever, if it never does -- the words
+    are light, so what is behind them has to be dark whichever theme the site
+    is in. Built from the palette so it belongs to the business, and dark
+    enough on its own to carry light type.
+  */
+  background: color-mix(in oklab, var(--text) 88%, var(--accent));
+  color: #f5f7fa;
+}
+
+/*
+  The type inside a media hero.
+
+  `--muted` is a mid tone chosen against the page, and over a photograph it is
+  unreadable; the same goes for `--text`. Inside this band both are replaced
+  with values that answer to the scrim instead, so every component that uses
+  them -- the eyebrow, the facts, the paragraph -- comes right without knowing
+  it is on a banner.
+*/
+.hero-media {
+  --text: #f5f7fa;
+  --muted: #d3dde2;
+  --border: rgb(255 255 255 / 0.22);
+  --border-strong: rgb(255 255 255 / 0.4);
+}
+
+/*
+  A card inside the banner band keeps the ink.
+
+  The band replaces `--text` and `--muted` so its own words read over a
+  photograph; a white card inside it needs them back, or its text is near-white
+  on near-white — which is what happened to the price of a first visit, in the
+  one place a prospect looks first. `--ink` is the same palette under a name the
+  band does not shadow, and the hairlines are rebuilt from it so a border does
+  not stay the white one the band set.
+*/
+.hero-media .card,
+.hero-media .tile {
+  --text: var(--ink);
+  --muted: var(--ink-muted);
+  --border: color-mix(in oklab, var(--ink) 12%, transparent);
+  --border-strong: color-mix(in oklab, var(--ink) 22%, transparent);
+  color: var(--ink);
+}
+
+/*
+  `.tile` was added beside `.card` on 2026-09-12 and the first thing it did was
+  reproduce this exact failure: the panel of answers in the first screen went
+  translucent over the banner, kept the band's light ink, and printed the price
+  of a first visit in near-white on near-white. One selector, named here rather
+  than a second copy of the rule, because the next surface class will need it
+  too and this comment is where somebody will look.
+
+  The blur has to come off as well. Over a dark banner an 82%-opaque white panel
+  is a grey smear rather than a card, and the whole point of the panel is that
+  it is the one thing on the first screen with hard edges.
+*/
+.hero-media .tile {
+  background: var(--surface);
+  backdrop-filter: none;
+}
+
+/*
+  And the second action, which sits on the banner rather than in a card.
+
+  `.btn-ghost` is a pale panel with the page's ink on it. On the banner the ink
+  is light, so the pale panel has to go: a dark wash and a light hairline, which
+  is the same button in the band's own terms.
+*/
+.hero-media .btn-ghost {
+  background: color-mix(in oklab, #000 30%, transparent);
+  border-color: color-mix(in oklab, #fff 42%, transparent);
+}
+
+@media (hover: hover) {
+  .hero-media .btn-ghost:hover {
+    background: color-mix(in oklab, #000 45%, transparent);
+    border-color: color-mix(in oklab, #fff 70%, transparent);
+  }
+}
+
+.hero-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Nothing here is content, so nothing here should be draggable or
+     selectable -- a banner that can be dragged out of the page as an image is
+     a small wrongness people notice without naming. */
+  user-select: none;
+  pointer-events: none;
+}
+
+/*
+  The still behind a video.
+
+  Hidden when the video is playing, shown when it is not -- which is the
+  reduced-motion case, and the case where the file never arrives.
+*/
+.hero-still {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-media video.hero-layer {
+    display: none;
+  }
+
+  .hero-media .hero-still {
+    display: block;
+  }
+}
+
+/**
+ * The layer between the banner and the words.
+ *
+ * A gradient rather than a flat wash: the words are at the bottom-left of the
+ * band, so that is where the cover needs to be, and a flat 60% over the whole
+ * picture buries a banner somebody chose. Stronger at the foot, clearing
+ * toward the top right, which is where a banner usually has its subject.
+ */
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      to top,
+      color-mix(in oklab, #04121a 82%, transparent),
+      color-mix(in oklab, #04121a 46%, transparent) 52%,
+      color-mix(in oklab, #04121a 24%, transparent)
+    );
+}
+
+[data-overlay="strong"] .hero-scrim {
+  background:
+    linear-gradient(
+      to top,
+      color-mix(in oklab, #04121a 92%, transparent),
+      color-mix(in oklab, #04121a 68%, transparent) 55%,
+      color-mix(in oklab, #04121a 48%, transparent)
+    );
+}
+
+/*
+  Off, for a banner that was made with space left for type.
+
+  A thin veil is still drawn rather than nothing at all: it is the difference
+  between a headline that is hard to read over a busy photograph and one that
+  cannot be read at all, and it costs nothing on a banner that did not need
+  it. The panel says as much beside the setting.
+*/
+[data-overlay="none"] .hero-scrim {
+  background: color-mix(in oklab, #04121a 18%, transparent);
+}
+
+/**
+ * A band, revealed when it is scrolled to.
+ *
+ * ---------------------------------------------------------------------------
+ * **This was `animation-timeline: view()` and it was the wrong mechanism.**
+ * A scroll-driven animation ties its *progress* to the scroll position, which
+ * gives two failures and no way to have neither:
+ *
+ *   - a short range finishes while the band is still arriving, so by the time
+ *     it is actually in front of the reader the movement is over. The owner
+ *     put it plainly: *"warna wo pahle hi ho jata h"*.
+ *   - a long range leaves a band that is half in view drawn at half its
+ *     opacity, so a page nobody has scrolled yet looks half-painted.
+ *
+ * What is wanted is not progress but a **trigger**: the band appears, and then
+ * a six-hundred-millisecond movement plays at its own speed. That is one
+ * `IntersectionObserver`, and the script that owns it is in
+ * `[variant]/layout.tsx`.
+ *
+ * ---------------------------------------------------------------------------
+ * **A transition, not an animation.** A transition cannot be left stuck
+ * mid-way: the element has one resting state and one revealed state, and any
+ * interruption lands on one of them. It also answers to the reduced-motion
+ * rule further up this file, which sets every duration to a thousandth of a
+ * millisecond — so somebody who asked for a still page gets the revealed state
+ * immediately rather than a movement nobody wanted.
+ *
+ * ---------------------------------------------------------------------------
+ * **Hidden only when the script is running.** The resting state is behind
+ * `html.js-reveal`, a class the observer's own script adds before first paint.
+ * If that script never runs — no JavaScript, a syntax error, a blocked
+ * bundle — the class is never added and every band is simply visible. A reveal
+ * that hides content and then depends on script to show it again is how a page
+ * ends up blank, and it fails worst for the people least able to work around
+ * it.
+ */

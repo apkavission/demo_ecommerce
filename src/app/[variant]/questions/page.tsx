@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFaqs, getVariant } from "@/lib/variants";
+import { PageBand } from "@/components/site/ui";
 
 type Props = { params: Promise<{ variant: string }> };
 
@@ -29,27 +30,26 @@ export default async function QuestionsPage({ params }: Props) {
   if (!variant) notFound();
 
   const faqs = await getFaqs(variant.id);
+  /* This page's own title and opening line, from the business. */
+  const page = variant.copy.pages.questions;
   const base = `/${variant.slug}`;
 
   return (
-    <div className="container-page py-14 md:py-20">
-      <div className="grid gap-12 md:grid-cols-[1fr_1.5fr]">
-        <header>
-          <h1 className="font-display text-4xl font-semibold tracking-tight">
-            Questions people ask
-          </h1>
-          <p className="mt-4 leading-relaxed text-muted">
-            If yours is not here, ring us — the number is in the footer, and
-            somebody who can actually answer it picks up.
-          </p>
+    <>
+      <PageBand
+        eyebrow={variant.industryLabel}
+        heading={page.heading}
+        intro={page.intro}
+        facts={faqs.length > 0 ? [{ label: "Answered here", value: String(faqs.length) }] : undefined}
+      >
+        <Link href={`${base}/contact`} className="btn-ghost">
+          Ask us something
+        </Link>
+      </PageBand>
 
-          <Link
-            href={`${base}/contact`}
-            className="mt-6 inline-flex rounded-full border border-border-strong px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2"
-          >
-            Ask us something
-          </Link>
-        </header>
+      <div className="container-page py-14 md:py-20">
+        <div className="grid gap-12 md:grid-cols-[1fr_1.5fr]">
+          <div />
 
         {faqs.length === 0 ? (
           <p className="rounded-[var(--radius-card)] border border-dashed border-border p-10 text-center text-muted">
@@ -75,6 +75,7 @@ export default async function QuestionsPage({ params }: Props) {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -78,7 +78,17 @@ test.describe("the public site", () => {
   test("the demo is never indexed", async ({ page }) => {
     await openVariant(page, VARIANTS[0]);
 
-    const robots = page.locator('head meta[name="robots"]');
+    /*
+      Asked for by name, not by parent.
+
+      The tag is what matters: a crawler reads `meta[name="robots"]` wherever
+      the document puts it. Next streams metadata into the body and lets React
+      hoist it, so in a development render it is a child of `<body>` and in a
+      production one it is in `<head>` — and a selector that names `head` turns
+      that difference into a failure claiming the demo is indexable, which is
+      the one thing this test exists to be trusted about.
+    */
+    const robots = page.locator('meta[name="robots"]');
     await expect(robots).toHaveAttribute("content", /noindex/);
   });
 });

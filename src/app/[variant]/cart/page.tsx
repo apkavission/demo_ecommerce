@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ShoppingBag } from "lucide-react";
 import { CouponBox, LineQuantity } from "@/components/site/product";
 import { getVariant } from "@/lib/variants";
+import { PageBand } from "@/components/site/ui";
 import { readCart } from "@/lib/cart";
 import { awayFromFreeShipping, formatMoney } from "@/lib/money";
 
@@ -43,33 +44,48 @@ export default async function CartPage({ params }: Props) {
     variant.freeShippingAbove,
   );
 
+  /*
+    An empty basket is a page, not an error.
+
+    It gets the same band as a full one — the same eyebrow, the same heading
+    treatment — because it is a real state a customer reaches, usually by
+    clicking the basket before adding anything, and a bare line of grey text
+    there reads as a site that has broken rather than a basket that is empty.
+  */
   if (cart.lines.length === 0) {
     return (
-      <div className="container-page py-24 text-center">
-        <span className="inline-flex size-12 items-center justify-center rounded-full bg-surface-2 text-muted">
-          <ShoppingBag className="size-5" aria-hidden />
-        </span>
-
-        <h1 className="font-display mt-6 text-2xl font-semibold">Nothing in the basket</h1>
-
-        <p className="measure mx-auto mt-2 text-sm text-muted">
-          Add something from the shop and it will be here — including if you close
-          this tab and come back tomorrow.
-        </p>
-
-        <Link
-          href={`${base}/shop`}
-          className="mt-8 inline-block rounded-lg bg-accent px-6 py-3 text-sm font-medium text-accent-fg"
+      <>
+        <PageBand
+          eyebrow={variant.industryLabel}
+          heading="Nothing in the basket"
+          intro="Add something from the shop and it will be here — including if you close this tab and come back tomorrow."
         >
-          See the shop
-        </Link>
-      </div>
+          <Link href={`${base}/shop`} className="btn">
+            See the shop
+          </Link>
+        </PageBand>
+
+        <div className="container-page py-20 text-center">
+          <span className="enter inline-flex size-12 items-center justify-center rounded-full bg-surface-2 text-muted">
+            <ShoppingBag className="size-5" aria-hidden />
+          </span>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="container-page py-14">
-      <h1 className="font-display text-3xl font-semibold tracking-tight">Basket</h1>
+    <>
+      <PageBand
+        eyebrow={variant.industryLabel}
+        heading="Basket"
+        intro="Every line is what you pay: the delivery is shown from the first item, and nothing is added at the end."
+        facts={[
+          { label: "Lines", value: String(cart.lines.length) },
+        ]}
+      />
+
+      <div className="container-page py-14">
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_20rem]">
         <ul className="divide-y divide-border border-y border-border">
@@ -180,6 +196,7 @@ export default async function CartPage({ params }: Props) {
           </div>
         </aside>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

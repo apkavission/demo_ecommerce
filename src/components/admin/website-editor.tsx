@@ -1,11 +1,21 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Check, Palette, Type as TypeIcon } from "lucide-react";
-import { saveContact, saveIdentity, saveLook, saveWords } from "@/lib/actions/website";
+import { Check, Image as ImageIcon, Palette, Trash2, Type as TypeIcon, Upload } from "lucide-react";
+import {
+  clearHero,
+  saveContact,
+  saveCopy,
+  saveHero,
+  saveIdentity,
+  saveLook,
+  saveWords,
+  uploadHero,
+} from "@/lib/actions/website";
 import { contrastVerdict, formatRatio } from "@/lib/contrast";
 import { FONT_PAIRS } from "@/lib/fonts";
 import { THEME_PRESETS } from "@/lib/theme-presets";
+import { DEFAULT_COPY, PAGE_KEYS, PROMISE_ICONS, type HomeCopy } from "@/lib/copy";
 import { idleState, type FormState } from "@/lib/form-state";
 import { useBusyWhile } from "@/components/forms/use-busy-while";
 import { BrandEditor } from "@/components/admin/brand-editor";
@@ -72,6 +82,10 @@ export interface WebsiteBusiness {
     hours?: string;
   };
   features: { bookingLabel?: string };
+  /** The words on the site. Already defaulted by `readCopy()`. */
+  copy: HomeCopy;
+  /** The banner behind the first screen, if this business has one. */
+  hero: { image: string | null; imageAlt: string; video: string | null };
   defaultMode: "light" | "dark";
   allowModeToggle: boolean;
 }
@@ -82,6 +96,8 @@ const FIELD =
 
 const SECTIONS = [
   { key: "identity", label: "Name & words" },
+  { key: "hero", label: "First screen" },
+  { key: "home", label: "Words on the site" },
   { key: "theme", label: "Theme" },
   { key: "logo", label: "Logo & search" },
   { key: "contact", label: "Contact" },
@@ -125,6 +141,8 @@ export function WebsiteEditor({
 
       <div className="mt-6">
         {section === "identity" && <IdentityForm business={business} />}
+        {section === "hero" && <HeroForm business={business} />}
+        {section === "home" && <HomeForm business={business} />}
         {section === "theme" && <ThemeForm business={business} />}
         {section === "logo" &&
           (brand ? (
@@ -290,6 +308,409 @@ function IdentityForm({ business }: { business: WebsiteBusiness }) {
 /* ================================================================= theme == */
 
 /** The seven colours of one mode, in the order somebody thinks about them. */
+/*
+  What this trade calls its two content bands.
+
+  Read from `PAGE_KEYS` rather than written here, so the panel says "The menu"
+  in a restaurant and "Classes and fees" in a school while this file stays one
+  file. The fallback is there because a demo that renames its keys should show
+  something rather than crash a screen.
+*/
+const CATALOGUE = PAGE_KEYS.find((page) => page.key === "catalogue") ?? PAGE_KEYS[0];
+const PEOPLE = PAGE_KEYS.find((page) => page.key === "people") ?? PAGE_KEYS[0];
+
+function HeroForm({ business }: { business: WebsiteBusiness }) {
+  const [state, action, pending] = useActionState(saveHero, idleState);
+  useBusyWhile(pending, "Saving the first screen");
+
+  const hero = business.hero;
+
+  return (
+    <div className="space-y-6">
+      <section className="card p-6">
+        <header className="flex items-start gap-3">
+          <ImageIcon className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
+          <div>
+            <h2 className="font-display text-lg font-semibold">The banner</h2>
+            <p className="measure mt-1 text-sm text-muted">
+              A wide picture behind the headline. Around 2000 pixels across and
+              not much taller than half that — a tall picture is cropped to the
+              band and its middle is what survives.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-5 md:grid-cols-[1.2fr_1fr]">
+          <div className="overflow-hidden rounded-[var(--radius-card)] border border-border bg-surface-2">
+            {hero.image ? (
+              /* eslint-disable-next-line @next/next/no-img-element -- an
+                 uploaded URL, shown once at a fixed size in the panel. */
+              <img src={hero.image} alt="" className="aspect-[21/9] w-full object-cover" />
+            ) : (
+              <p className="grid aspect-[21/9] place-items-center p-6 text-center text-sm text-muted">
+                No banner. The band uses this business&rsquo;s own colours.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <UploadBanner variantId={business.id} />
+
+            {hero.image && <ClearBanner variantId={business.id} />}
+          </div>
+        </div>
+      </section>
+
+      <form action={action} className="card space-y-5 p-6">
+        <input type="hidden" name="variant_id" value={business.id} />
+
+        <label className="block text-sm">
+          <span className="font-medium">A video instead</span>
+          <input
+            name="hero_video_url"
+            defaultValue={hero.video ?? ""}
+            placeholder="https://…/clinic.mp4"
+            maxLength={600}
+            className={FIELD}
+          />
+          <span className="mt-1 block text-xs text-muted">
+            The address of an MP4 that is already served somewhere. It plays
+            muted and loops, and the banner above becomes its still — which is
+            what shows while it loads, on a slow connection, and for anybody who
+            has asked their computer to stop moving things.
+          </span>
+          <Error message={state.fieldErrors?.hero_video_url} />
+        </label>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="font-medium">How dark behind the words</span>
+            <select
+              name="overlay"
+              defaultValue={business.copy.hero.overlay}
+              className={FIELD}
+            >
+              <option value="soft">Soft — reads over most pictures</option>
+              <option value="strong">Strong — for a busy or bright picture</option>
+              <option value="none">Almost none — only for a banner with space left for type</option>
+            </select>
+            <span className="mt-1 block text-xs text-muted">
+              Contrast over a photograph cannot be measured in advance, so this
+              is what keeps the headline readable. Check the last option on the
+              site before sending the demo.
+            </span>
+          </label>
+
+          <label className="block text-sm">
+            <span className="font-medium">Where the words sit</span>
+            <select name="align" defaultValue={business.copy.hero.align} className={FIELD}>
+              <option value="left">Left — reads as a page</option>
+              <option value="centre">Centred — reads as a poster</option>
+            </select>
+          </label>
+        </div>
+
+        <SaveBar state={state} pending={pending} label="Save the first screen" />
+      </form>
+    </div>
+  );
+}
+
+/** The upload, with its own pending state and its own message. */
+function UploadBanner({ variantId }: { variantId: string }) {
+  const [state, action, pending] = useActionState(uploadHero, idleState);
+  useBusyWhile(pending, "Uploading the banner");
+
+  return (
+    <form action={action} className="space-y-3">
+      <input type="hidden" name="variant_id" value={variantId} />
+
+      <label className="block text-sm">
+        <span className="font-medium">Choose a picture</span>
+        <input
+          type="file"
+          name="file"
+          accept="image/*"
+          required
+          className="mt-1.5 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+        />
+      </label>
+
+      <label className="block text-sm">
+        <span className="font-medium">What it shows</span>
+        <input
+          name="alt"
+          maxLength={160}
+          placeholder="The treatment room, from the door"
+          className={FIELD}
+        />
+        <span className="mt-1 block text-xs text-muted">
+          Read aloud instead of the picture. Describe it, do not name the
+          business again.
+        </span>
+      </label>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          <Upload className="size-4" aria-hidden />
+          {pending ? "Uploading" : "Upload"}
+        </button>
+
+        {state.status !== "idle" && !pending && (
+          <span
+            role="status"
+            className={cn(
+              "text-xs",
+              state.status === "error" ? "text-red-600 dark:text-red-400" : "text-muted",
+            )}
+          >
+            {state.message}
+          </span>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/** And taking it off again, which leaves the picture in the library. */
+function ClearBanner({ variantId }: { variantId: string }) {
+  const [state, action, pending] = useActionState(clearHero, idleState);
+  useBusyWhile(pending, "Removing the banner");
+
+  return (
+    <form action={action}>
+      <input type="hidden" name="variant_id" value={variantId} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted transition-colors hover:border-red-400 hover:text-red-600 disabled:opacity-60 dark:hover:text-red-400"
+      >
+        <Trash2 className="size-3.5" aria-hidden />
+        {pending ? "Removing" : "Take the banner off"}
+      </button>
+
+      {state.status === "error" && (
+        <span role="status" className="ml-2 text-xs text-red-600 dark:text-red-400">
+          {state.message}
+        </span>
+      )}
+    </form>
+  );
+}
+
+/* ============================================================== home page == */
+
+/** The five bands that carry a heading and a sentence. */
+const BANDS = [
+  { key: "catalogue", label: `The ${CATALOGUE.label.toLowerCase()} band`, hint: "Above the cards on the front page." },
+  { key: "people", label: `The ${PEOPLE.label.toLowerCase()} band`, hint: "Above the people on the front page." },
+  { key: "reviews", label: "The reviews band", hint: "Above the quotes." },
+  { key: "questions", label: "The questions band", hint: "Above the questions and answers." },
+  { key: "cta", label: "The closing band", hint: "The last thing on the page." },
+] as const;
+
+/** As many promise rows as the action reads. */
+const PROMISE_ROWS = 6;
+
+/**
+ * What the home page says.
+ *
+ * ---------------------------------------------------------------------------
+ * **Every field here was a literal in the page component.** A demo could have
+ * its own name, colours, typeface, prices and people, and still tell a
+ * business that does not sterilise anything that its instruments are unpacked
+ * in front of you. The owner asked for the opposite: *har ek chej kuch bhi
+ * static mat karna*.
+ *
+ * **Nothing is required, and empty is not blank.** Every box shows the written
+ * default as its placeholder, and clearing one puts that default back rather
+ * than leaving a band with no title. The one exception is the promises: taking
+ * all four off means a business that shows none, and the band disappears —
+ * which is a decision somebody can make and a default must not undo.
+ */
+function HomeForm({ business }: { business: WebsiteBusiness }) {
+  const [state, action, pending] = useActionState(saveCopy, idleState);
+  useBusyWhile(pending, "Saving the words");
+
+  const copy = business.copy;
+
+  /* The rows the form offers: what is there, then empty ones to add to. */
+  const rows = Array.from({ length: PROMISE_ROWS }, (_, index) => copy.promises[index] ?? null);
+
+  return (
+    <form action={action} className="space-y-6">
+      <input type="hidden" name="variant_id" value={business.id} />
+
+      <section className="card space-y-5 p-6">
+        <header>
+          <h2 className="font-display text-lg font-semibold">Headings and sentences</h2>
+          <p className="measure mt-1 text-sm text-muted">
+            What each band on the home page is called, and the line under it.
+            Leave a box empty to use the wording shown in it.
+          </p>
+        </header>
+
+        {BANDS.map((band) => {
+          const current = copy[band.key];
+          const fallback = DEFAULT_COPY[band.key];
+
+          return (
+            <div key={band.key} className="grid gap-4 border-t border-border pt-5 md:grid-cols-[1fr_1.6fr]">
+              <label className="block text-sm">
+                <span className="font-medium">{band.label}</span>
+                <input
+                  name={`${band.key}_heading`}
+                  defaultValue={current.heading}
+                  placeholder={fallback.heading || "Uses the button's label"}
+                  maxLength={80}
+                  className={FIELD}
+                />
+                <span className="mt-1 block text-xs text-muted">{band.hint}</span>
+                <Error message={state.fieldErrors?.[`${band.key}.heading`]} />
+              </label>
+
+              <label className="block text-sm">
+                <span className="font-medium">The line under it</span>
+                <textarea
+                  name={`${band.key}_intro`}
+                  defaultValue={current.intro}
+                  placeholder={fallback.intro}
+                  rows={2}
+                  maxLength={400}
+                  className={FIELD}
+                />
+                <Error message={state.fieldErrors?.[`${band.key}.intro`]} />
+              </label>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="card space-y-5 p-6">
+        <header>
+          <h2 className="font-display text-lg font-semibold">The other six pages</h2>
+          <p className="measure mt-1 text-sm text-muted">
+            What each page behind the menu is called, and the line under its
+            title. These are separate from the bands above on purpose: the home
+            page introduces six treatments and a link to the rest, while the
+            services page <em>is</em> the rest.
+          </p>
+        </header>
+
+        {PAGE_KEYS.map((page) => {
+          const current = copy.pages[page.key];
+          const fallback = DEFAULT_COPY.pages[page.key];
+
+          return (
+            <div
+              key={page.key}
+              className="grid gap-4 border-t border-border pt-5 md:grid-cols-[1fr_1.6fr]"
+            >
+              <label className="block text-sm">
+                <span className="font-medium">{page.label}</span>
+                <input
+                  name={`page_${page.key}_heading`}
+                  defaultValue={current.heading}
+                  placeholder={fallback.heading || "Uses the button's label"}
+                  maxLength={80}
+                  className={FIELD}
+                />
+                <span className="mt-1 block text-xs text-muted">/{page.key}</span>
+                <Error message={state.fieldErrors?.[`pages.${page.key}.heading`]} />
+              </label>
+
+              <label className="block text-sm">
+                <span className="font-medium">The line under it</span>
+                <textarea
+                  name={`page_${page.key}_intro`}
+                  defaultValue={current.intro}
+                  placeholder={fallback.intro}
+                  rows={2}
+                  maxLength={400}
+                  className={FIELD}
+                />
+                <Error message={state.fieldErrors?.[`pages.${page.key}.intro`]} />
+              </label>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="card space-y-4 p-6">
+        <header>
+          <h2 className="font-display text-lg font-semibold">The four promises</h2>
+          <p className="measure mt-1 text-sm text-muted">
+            The strip under the first screen. These are claims a business makes
+            about itself, so they are worth reading before a demo is sent —
+            clear a title to take one off, and clearing all of them removes the
+            strip.
+          </p>
+        </header>
+
+        <ul className="space-y-3">
+          {rows.map((promise, index) => (
+            <li
+              key={index}
+              className="grid gap-3 rounded-[var(--radius-card)] border border-border p-4 md:grid-cols-[9rem_1fr_1.4fr]"
+            >
+              <label className="block text-sm">
+                <span className="text-xs text-muted">Icon</span>
+                <select
+                  name={`promise_${index}_icon`}
+                  defaultValue={promise?.icon ?? PROMISE_ICONS[0].key}
+                  className={FIELD}
+                >
+                  {PROMISE_ICONS.map((icon) => (
+                    <option key={icon.key} value={icon.key}>
+                      {icon.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-xs text-muted">What it says</span>
+                <input
+                  name={`promise_${index}_title`}
+                  defaultValue={promise?.title ?? ""}
+                  placeholder={index === 0 ? DEFAULT_COPY.promises[0].title : "Empty to leave out"}
+                  maxLength={80}
+                  className={FIELD}
+                />
+                <Error message={state.fieldErrors?.[`promises.${index}.title`]} />
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-xs text-muted">The line under it</span>
+                <input
+                  name={`promise_${index}_note`}
+                  defaultValue={promise?.note ?? ""}
+                  placeholder={index === 0 ? DEFAULT_COPY.promises[0].note : ""}
+                  maxLength={200}
+                  className={FIELD}
+                />
+                <Error message={state.fieldErrors?.[`promises.${index}.note`]} />
+              </label>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <div className="card p-6">
+        <SaveBar state={state} pending={pending} label="Save the words" />
+      </div>
+    </form>
+  );
+}
+
+/* ================================================================= theme == */
+
+/** The seven colours of one mode, in the order somebody thinks about them. */
+
 const SWATCHES = [
   { key: "bg", label: "The page", note: "Behind everything." },
   { key: "surface", label: "Cards", note: "A step away from the page." },

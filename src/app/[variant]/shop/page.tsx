@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Spotlight } from "@/components/site/motion";
 import { ProductCard } from "@/components/site/product";
+import { PageBand } from "@/components/site/ui";
 import { getCollections, getOptionsFor, getProducts, getVariant } from "@/lib/variants";
 import { cn } from "@/lib/utils";
 
@@ -50,20 +52,28 @@ export default async function ShopPage({ params, searchParams }: Props) {
     live.some((product) => product.collection_id === collection.id),
   );
 
+  /* This page's own title and opening line, from the business — used when
+     nobody has chosen a collection, which is the page's own state. */
+  const page = variant.copy.pages.catalogue;
+
+  const inStock = live.filter((product) => product.stock === null || product.stock > 0).length;
+
   return (
-    <div className="container-page py-14">
-      <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
-          {chosen ? chosen.name : "Everything"}
-        </h1>
-        <p className="measure mt-2 text-muted">
-          {chosen?.summary ??
-            `${live.length} ${live.length === 1 ? "thing" : "things"} in the shop, and every price is what you pay.`}
-        </p>
-      </header>
+    <>
+      <PageBand
+        eyebrow={variant.industryLabel}
+        heading={chosen ? chosen.name : page.heading}
+        intro={chosen?.summary ?? page.intro}
+        facts={[
+          inStock > 0 ? { label: "In stock", value: String(inStock) } : null,
+          withStock.length > 0 ? { label: "Collections", value: String(withStock.length) } : null,
+        ].filter(Boolean) as { label: string; value: string }[]}
+      />
+
+      <div className="container-page py-14">
 
       {withStock.length > 0 && (
-        <nav aria-label="Collections" className="mt-8 flex flex-wrap gap-2">
+        <nav aria-label="Collections" className="flex flex-wrap gap-2">
           <Link
             href={`${base}/shop`}
             aria-current={chosen ? undefined : "page"}
@@ -104,18 +114,20 @@ export default async function ShopPage({ params, searchParams }: Props) {
           .
         </p>
       ) : (
-        <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {shown.map((product) => (
+        <Spotlight as="ul" className="mt-10 grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {shown.map((product, index) => (
             <ProductCard
               key={product.id}
               product={product}
               base={base}
               symbol={variant.currencySymbol}
               optionCount={options.get(product.id)?.length ?? 0}
+              index={index}
             />
           ))}
-        </ul>
+        </Spotlight>
       )}
-    </div>
+      </div>
+    </>
   );
 }

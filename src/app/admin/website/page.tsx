@@ -105,6 +105,8 @@ export default async function WebsitePage({ searchParams }: Props) {
           },
           contact: variant.contact,
           features: variant.features,
+          copy: variant.copy,
+          hero: variant.hero,
           defaultMode: variant.defaultMode,
           allowModeToggle: variant.allowModeToggle,
         }}
